@@ -45,7 +45,16 @@ st.markdown("""
     }
 
     .z-layer { position: relative; z-index: 10; width: 100%; }
-    .gray-label { color: #aaaaaa; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+    
+    /* تكبير حجم مسميات الـ KPIs */
+    .gray-label { 
+        color: #aaaaaa; 
+        font-size: 16px; /* تم تكبير الخط من 13px */
+        font-weight: 800; 
+        text-transform: uppercase; 
+        letter-spacing: 1px; 
+    }
+    
     .cyan-val { color: #00d4ff; font-size: 32px; font-weight: 900; }
     .bm-full-text { color: #444444; font-size: 10px; font-weight: bold; margin-top: 5px; text-transform: uppercase; }
 
@@ -62,7 +71,7 @@ st.markdown("""
         border-radius: 4px; padding: 14px; margin-bottom: 12px;
         display: flex; justify-content: space-between; align-items: center;
     }
-    .device-name { color: #888; font-size: 12px; font-weight: bold; text-transform: uppercase; }
+    .device-name { color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; }
     .device-val { color: #00d4ff; font-size: 24px; font-weight: 900; }
 
     .side-header { color: #00d4ff; font-size: 22px; font-weight: 900; margin-bottom: 25px; text-transform: uppercase; }
@@ -71,7 +80,7 @@ st.markdown("""
 
 if 'step' not in st.session_state: st.session_state.step = 0
 
-# 3. داتا المؤشرات (استخدام Q1, Q2 بدل Cycle)
+# 3. داتا المؤشرات
 data_source = [
     {
         "period": "1Q 2026",
@@ -88,7 +97,7 @@ data_source = [
 ]
 d = data_source[st.session_state.step % 2]
 
-# الهيدر الجديد كما طلبت
+# الهيدر
 st.markdown(f"<h1 style='text-align: center; color: #00d4ff; font-size: 45px; font-weight:900; letter-spacing: 2px;'>ICU DASHBOARD</h1>", unsafe_allow_html=True)
 st.markdown(f"<p style='text-align: center; color: #444; font-weight: bold;'>PERIOD: {d['period']}</p>", unsafe_allow_html=True)
 
@@ -103,7 +112,7 @@ for i, (lab, val, bm) in enumerate(d['squares']):
             <div class="bm-full-text">BENCHMARK: {bm}</div>
         </div></div>""", unsafe_allow_html=True)
 
-# 5. الدوائر الـ 6 مع مسافات مضبوطة
+# 5. الدوائر الـ 6 (مع مسميات أكبر)
 st.markdown("<div style='margin-top:20px;'></div>", unsafe_allow_html=True)
 cols2 = st.columns(6)
 for i, (lab, val, bm) in enumerate(d['circles']):
@@ -115,7 +124,7 @@ for i, (lab, val, bm) in enumerate(d['circles']):
             <div class="circle-container"><div class="z-layer">
                 <div class="cyan-val" style="font-size: 24px; color:{color}">{val}</div>
             </div></div>
-            <div class="gray-label" style="margin-top:12px; font-size:11px;">{lab}</div>
+            <div class="gray-label" style="margin-top:12px; font-size:14px;">{lab}</div>
             <div class="bm-full-text" style="color:#333;">BENCHMARK: {bm}</div>
         </div>
         """, unsafe_allow_html=True)
@@ -128,7 +137,7 @@ c1, c2 = st.columns([1.3, 2.5])
 with c1:
     st.markdown('<div class="side-header">36 CAPACITY</div>', unsafe_allow_html=True)
     st.markdown(f"""<div class="census-container">
-        <div class="gray-label" style="color:#FFD700;">UNIT CENSUS</div>
+        <div class="gray-label" style="color:#FFD700; font-size:14px;">UNIT CENSUS</div>
         <div class="census-big-num">{d['census']}</div>
         <div style="color:#FFD700; font-weight:bold; font-size:14px;">OCCUPANCY: {d['occ']}</div>
     </div>""", unsafe_allow_html=True)
