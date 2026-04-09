@@ -5,16 +5,18 @@ import time
 # 1. إعدادات الصفحة
 st.set_page_config(page_title="ICU Dashboard", layout="wide", initial_sidebar_state="collapsed")
 
-# 2. CSS المعتمد - مسميات كاملة وتنسيق ثابت
+# 2. CSS المعتمد - مسميات كاملة وتنسيق احترافي للحدود
 st.markdown("""
     <style>
     [data-testid="stAppViewContainer"] { background-color: #000000; color: #ffffff; }
     
-    /* المربعات العلوية */
+    /* المربعات العلوية - تعزيز الحدود */
     .kpi-card {
         position: relative; background-color: #0a0a0a; border-radius: 20px;
         overflow: hidden; display: flex; flex-direction: column; justify-content: center;
         text-align: center; height: 260px; margin-bottom: 20px;
+        border: 1px solid #1a1a1a; /* حد أساسي */
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.1); /* توهج خفيف */
     }
     .kpi-card::before, .circle-container::before {
         content: ''; position: absolute; width: 250%; height: 250%;
@@ -22,15 +24,17 @@ st.markdown("""
         animation: rotate-wave 4s linear infinite; top: 50%; left: 50%;
     }
     .kpi-card::after, .circle-container::after {
-        content: ''; position: absolute; background-color: #0a0a0a; inset: 6px; border-radius: 16px;
+        content: ''; position: absolute; background-color: #0a0a0a; inset: 4px; border-radius: 16px;
     }
     
-    /* الدوائر المتوهجة */
+    /* الدوائر المتوهجة - تعزيز الحدود */
     .circle-container {
         position: relative; width: 280px; height: 280px; border-radius: 50%;
         margin: auto; overflow: hidden; display: flex; justify-content: center; align-items: center; text-align: center;
+        border: 1px solid #1a1a1a;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.15);
     }
-    .circle-container::after { border-radius: 50%; inset: 10px; }
+    .circle-container::after { border-radius: 50%; inset: 8px; }
     
     @keyframes rotate-wave { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
     
@@ -39,15 +43,15 @@ st.markdown("""
     .val-full { color: #00d4ff; font-size: 50px; font-weight: 900; line-height: 1; }
     .bm-full { color: #444444; font-size: 14px; font-weight: bold; margin-top: 10px; text-transform: uppercase; }
 
-    /* الجزء السفلي الخاص بالديفيس */
-    .census-box-mini { background: #0a0a0a; border: 2px solid #FFD700; border-radius: 12px; padding: 15px 25px; text-align: left; max-width: 250px; margin-bottom: 20px; }
-    .census-num-mini { color: #FFD700; font-size: 40px; font-weight: 900; margin: 5px 0; }
-    .gauge-label-bottom { color: #ffffff; font-size: 14px; font-weight: 900; text-transform: uppercase; margin-top: -20px; text-align: center; }
+    /* الجزء السفلي */
+    .census-box-mini { background: #0a0a0a; border: 2px solid #FFD700; border-radius: 12px; padding: 10px 20px; text-align: left; margin-bottom: 10px; }
+    .census-num-mini { color: #FFD700; font-size: 35px; font-weight: 900; }
     .side-header { color: #00d4ff; font-size: 26px; font-weight: 900; margin-bottom: 15px; text-transform: uppercase; }
+    .gauge-label-bottom { color: #ffffff; font-size: 14px; font-weight: 900; text-transform: uppercase; margin-top: -20px; text-align: center; }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. داتا الـ PDF (مقسمة كوارترات)
+# 3. إدارة الداتا
 if 'step' not in st.session_state: st.session_state.step = 0
 pdf_data = [
     {"q": "3Q 2024", "sq": [0.36, 0.36, 6.90, 2.63, 1.02, 0.00], "sq_bm": [0.28, 0.05, 4.60, 1.20, 0.40, 1.89],
@@ -57,20 +61,18 @@ pdf_data = [
 ]
 cur_pdf = pdf_data[st.session_state.step % len(pdf_data)]
 
-# --- الجزء العلوي (مربعات ودواير) ---
+# --- الجزء العلوي (مربعات ودواير بحدود قوية) ---
 st.markdown(f"<h1 style='text-align: center; color: #00d4ff; font-size: 50px; font-weight:900;'>ICU DASHBOARD</h1>", unsafe_allow_html=True)
 st.markdown(f"<p style='text-align: center; color: #FFD700; font-size: 20px; font-weight:bold;'>PERIOD: {cur_pdf['q']}</p>", unsafe_allow_html=True)
 
-# المربعات (مسميات كاملة + BENCHMARK)
 sq_names = ["Falls", "Injury Falls", "HAPI %", "CLABSI", "CAUTI", "VAE Rate"]
 c1 = st.columns(6)
 for i in range(6):
     val, bm = cur_pdf['sq'][i], cur_pdf['sq_bm'][i]
     color = "#00ffaa" if val <= bm else "#ff4b4b"
     with c1[i]:
-        st.markdown(f"""<div class="kpi-card"><div class="content-box"><div class="label-full">{sq_names[i]}</div><div class="val-full" style="color:{color}">{val}</div><div class="bm-full">BENCHMARK: {bm}</div></div></div>""", unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-card"><div class="content-box"><div class="label-full">{sq_names[i]}</div><div class="val-full" style="color:{color}">{val}</div><div class="bm-full">BENCHMARK: {bm}</div></div></div>', unsafe_allow_html=True)
 
-# الدوائر (مسميات كاملة + BENCHMARK)
 st.markdown("<div style='margin-top:20px;'></div>", unsafe_allow_html=True)
 cir_names = ["Restraints", "VAE Rate", "Turnover", "Nurse Hr", "RN Edu", "C-Diff"]
 c2 = st.columns(6)
@@ -79,17 +81,22 @@ for i in range(6):
     is_rev = any(x in cir_names[i] for x in ["Hr", "Edu"])
     color = "#00ffaa" if (val >= bm if is_rev else val <= bm) else "#ff4b4b"
     with c2[i]:
-        st.markdown(f"""<div class="circle-container"><div class="content-box"><div class="label-full" style="font-size:18px;">{cir_names[i]}</div><div class="val-full" style="color:{color}; font-size:42px;">{val}</div><div class="bm-full">BENCHMARK: {bm}</div></div></div>""", unsafe_allow_html=True)
+        st.markdown(f'<div class="circle-container"><div class="content-box"><div class="label-full" style="font-size:18px;">{cir_names[i]}</div><div class="val-full" style="color:{color}; font-size:42px;">{val}</div><div class="bm-full">BENCHMARK: {bm}</div></div></div>', unsafe_allow_html=True)
 
-st.markdown("<hr style='border-color:#111; margin:60px 0;'>", unsafe_allow_html=True)
+st.markdown("<hr style='border-color:#111; margin:40px 0;'>", unsafe_allow_html=True)
 
-# --- الجزء السفلي (Attached Devices - ثابت المسميات) ---
+# --- الجزء السفلي (Attached Devices + Occupancy Rate) ---
 col_left, col_right = st.columns([2.2, 1.8])
 
 with col_left:
-    st.markdown("""<div class="census-box-mini"><div style="color:#555; font-size:12px; font-weight:bold; text-transform:uppercase;">Current Census</div><div class="census-num-mini">28</div></div>""", unsafe_allow_html=True)
-    st.markdown('<div class="side-header">ATTACHED DEVICES</div>', unsafe_allow_html=True)
+    # إضافة الـ Occupancy Rate بجانب الـ Census
+    sub_c1, sub_c2 = st.columns(2)
+    with sub_c1:
+        st.markdown('<div class="census-box-mini"><div style="color:#555; font-size:12px; font-weight:bold;">CURRENT CENSUS</div><div class="census-num-mini">28</div></div>', unsafe_allow_html=True)
+    with sub_c2:
+        st.markdown('<div class="census-box-mini" style="border-color:#00d4ff;"><div style="color:#555; font-size:12px; font-weight:bold;">OCCUPANCY RATE</div><div class="census-num-mini" style="color:#00d4ff;">93%</div></div>', unsafe_allow_html=True)
     
+    st.markdown('<div class="side-header">ATTACHED DEVICES</div>', unsafe_allow_html=True)
     g_cols = st.columns(4)
     dev_info = [("Pt with ETT", 11, 36, [10, 18]), ("Pt with Foley", 15, 36, [24, 30]), ("Pt with CVC", 6, 36, [16, 22]), ("Avg Stay", 4.5, 10, [4, 6])]
     for i, (name, val, mx, steps) in enumerate(dev_info):
@@ -113,7 +120,6 @@ with col_right:
                           margin=dict(t=20, b=20, l=0, r=0), legend=dict(font=dict(color="#888"), orientation="h", y=1.2))
     st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
 
-# تحديث كل 15 ثانية
 time.sleep(15)
 st.session_state.step += 1
 st.rerun()
