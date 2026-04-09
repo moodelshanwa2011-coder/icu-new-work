@@ -10,140 +10,173 @@ dashboard_html = """
     <meta charset="UTF-8">
     <style>
         :root {
-            --bg: #05080a;
+            --bg: #06090c;
             --emerald: #10b981;
-            --silver: #e2e8f0;
-            --gray-panel: rgba(30, 41, 59, 0.3);
-            --border: rgba(16, 185, 129, 0.4);
+            --silver: #f1f5f9;
+            --panel: rgba(30, 41, 59, 0.4);
+            --border: rgba(16, 185, 129, 0.3);
         }
         
         body {
             font-family: 'Segoe UI', sans-serif;
             background-color: var(--bg);
             color: var(--silver); margin: 0; padding: 20px;
-            display: flex; justify-content: center; align-items: center;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
             height: 100vh; overflow: hidden;
         }
 
-        .main-layout {
+        .header {
+            margin-bottom: 40px; text-align: center;
+        }
+
+        .date-tag {
+            background: var(--emerald); color: #000; padding: 8px 30px;
+            border-radius: 50px; font-weight: 900; font-size: 1.5rem;
+        }
+
+        .grid-container {
             display: grid;
-            grid-template-columns: 1fr 1.5fr 1fr;
-            gap: 30px;
-            width: 95%;
-            align-items: center;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px;
+            width: 90%;
         }
 
-        /* الدائرة المركزية (عدد الوفيات والتاريخ) */
-        .center-circle {
-            width: 380px; height: 380px; border-radius: 50%;
-            border: 6px solid var(--emerald);
-            background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 75%);
+        .stat-group {
+            display: flex; align-items: center; gap: 15px; justify-content: center;
+        }
+
+        /* الدائرة الأساسية للجهاز */
+        .circle-main {
+            width: 200px; height: 200px; border-radius: 50%;
+            border: 4px solid var(--emerald);
+            background: var(--panel);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            box-shadow: 0 0 50px rgba(16, 185, 129, 0.15);
-            margin: auto;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
         }
 
-        .mort-val { font-size: 8rem; font-weight: 900; color: var(--emerald); line-height: 1; }
-        .mort-lbl { font-size: 1.6rem; font-weight: 700; margin-bottom: 10px; }
-        .date-box { font-size: 1.3rem; color: var(--silver); margin-top: 15px; border-top: 1px solid var(--border); padding-top: 10px; }
-
-        /* الدوائر الجانبية للمتغيرات الستة */
-        .side-grid {
-            display: flex; flex-direction: column; gap: 20px;
-        }
-
-        .stat-circle {
-            width: 170px; height: 170px; border-radius: 50%;
-            border: 2px solid var(--border);
-            background: var(--gray-panel);
+        /* دائرة الـ Total Pt الجانبية */
+        .circle-total {
+            width: 90px; height: 90px; border-radius: 50%;
+            border: 2px solid #fff;
+            background: rgba(255, 255, 255, 0.05);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            text-align: center; transition: 0.4s ease;
+            font-size: 0.7rem;
         }
 
-        .stat-circle.highlight { border-color: #fff; border-width: 3px; width: 190px; height: 190px; }
-        .stat-val { font-size: 2.5rem; font-weight: 800; color: var(--emerald); }
-        .stat-lbl { font-size: 0.85rem; color: var(--silver); font-weight: 600; padding: 0 10px; margin-top: 5px; }
-        .highlight .stat-val { color: #fff; font-size: 3.2rem; }
+        .val-large { font-size: 4rem; font-weight: 900; color: var(--emerald); line-height: 1; }
+        .val-small { font-size: 1.8rem; font-weight: 800; color: #fff; }
+        .lbl { font-size: 0.9rem; font-weight: bold; margin-top: 5px; text-align: center; }
+        .total-lbl { color: #94a3b8; font-size: 0.6rem; text-transform: uppercase; }
 
     </style>
 </head>
 <body>
 
-<div class="main-layout">
+<div class="header">
+    <div style="color: #64748b; margin-bottom: 10px; font-weight: bold;">مراقبة الأجهزة مقابل إجمالي المرضى</div>
+    <span id="dateTag" class="date-tag">...</span>
+</div>
+
+<div class="grid-container">
     
-    <div class="side-grid">
-        <div class="stat-circle">
-            <span class="stat-val" id="foleyVal">0</span>
-            <span class="stat-lbl">Foley Cath</span>
+    <div class="stat-group">
+        <div class="circle-main">
+            <span class="val-large" id="foleyVal">0</span>
+            <span class="lbl">Foley Cath</span>
         </div>
-        <div class="stat-circle">
-            <span class="stat-val" id="centralVal">0</span>
-            <span class="stat-lbl">Central Line</span>
-        </div>
-        <div class="stat-circle">
-            <span class="stat-val" id="ettVal">0</span>
-            <span class="stat-lbl">ETT</span>
+        <div class="circle-total">
+            <span class="total-lbl">Total Pt</span>
+            <span class="val-small" id="t1">0</span>
         </div>
     </div>
 
-    <div class="center-circle">
-        <span class="mort-lbl">عدد الوفيات</span>
-        <span class="mort-val" id="mortVal">0</span>
-        <div class="date-box">
-            <span id="monthVal">...</span> | <span id="yearVal">...</span>
+    <div class="stat-group">
+        <div class="circle-main">
+            <span class="val-large" id="centralVal">0</span>
+            <span class="lbl">Central Line</span>
+        </div>
+        <div class="circle-total">
+            <span class="total-lbl">Total Pt</span>
+            <span class="val-small" id="t2">0</span>
         </div>
     </div>
 
-    <div class="side-grid">
-        <div class="stat-circle highlight">
-            <span class="stat-val" id="totalPtVal">0</span>
-            <span class="stat-lbl">Total Patient</span>
+    <div class="stat-group">
+        <div class="circle-main">
+            <span class="val-large" id="ettVal">0</span>
+            <span class="lbl">ETT</span>
         </div>
-        <div class="stat-circle">
-            <span class="stat-val" id="ttVal">0</span>
-            <span class="stat-lbl">T.T</span>
+        <div class="circle-total">
+            <span class="total-lbl">Total Pt</span>
+            <span class="val-small" id="t3">0</span>
         </div>
-        <div class="stat-circle">
-            <span class="stat-val" id="ivVal">0</span>
-            <span class="stat-lbl">IV Access</span>
+    </div>
+
+    <div class="stat-group">
+        <div class="circle-main">
+            <span class="val-large" id="ttVal">0</span>
+            <span class="lbl">T.T</span>
+        </div>
+        <div class="circle-total">
+            <span class="total-lbl">Total Pt</span>
+            <span class="val-small" id="t4">0</span>
+        </div>
+    </div>
+
+    <div class="stat-group">
+        <div class="circle-main">
+            <span class="val-large" id="ivVal">0</span>
+            <span class="lbl">IV Access</span>
+        </div>
+        <div class="circle-total">
+            <span class="total-lbl">Total Pt</span>
+            <span class="val-small" id="t5">0</span>
+        </div>
+    </div>
+
+    <div class="stat-group">
+        <div class="circle-main" style="border-color: #fff; background: rgba(255,255,255,0.1);">
+            <span class="val-large" id="totalPtVal" style="color:#fff">0</span>
+            <span class="lbl" style="color:#fff">Total Patient</span>
         </div>
     </div>
 
 </div>
 
 <script>
-    // البيانات المسحوبة من الصور بدقة (تم دمجها مع جدول الوفيات)
-    const records = [
-        {y: "2024", m: "يناير", mort: 6, total: 42, foley: 28, central: 15, ett: 12, tt: 4, iv: 38},
-        {y: "2024", m: "فبراير", mort: 3, total: 35, foley: 20, central: 10, ett: 8, tt: 3, iv: 30},
-        {y: "2024", m: "مارس", mort: 7, total: 48, foley: 32, central: 18, ett: 15, tt: 5, iv: 45},
-        {y: "2025", m: "يناير", mort: 6, total: 40, foley: 25, central: 14, ett: 10, tt: 4, iv: 35},
-        {y: "2025", m: "فبراير", mort: 3, total: 38, foley: 22, central: 12, ett: 9, tt: 2, iv: 33}
+    // البيانات الفعلية من الجداول والصور
+    const dataRecords = [
+        {m: "يناير 2024", total: 42, foley: 28, central: 15, ett: 12, tt: 4, iv: 38},
+        {m: "فبراير 2024", total: 35, foley: 20, central: 10, ett: 8, tt: 3, iv: 30},
+        {m: "مارس 2024", total: 48, foley: 32, central: 18, ett: 15, tt: 5, iv: 45},
+        {m: "يناير 2025", total: 40, foley: 25, central: 14, ett: 10, tt: 4, iv: 35},
+        {m: "فبراير 2025", total: 38, foley: 22, central: 12, ett: 9, tt: 2, iv: 33}
     ];
 
-    let current = 0;
+    let currentIdx = 0;
 
-    function updateDashboard() {
-        const data = records[current];
+    function refresh() {
+        const d = dataRecords[currentIdx];
+        document.getElementById('dateTag').innerText = d.m;
         
-        // المركز
-        document.getElementById('mortVal').innerText = data.mort;
-        document.getElementById('monthVal').innerText = data.m;
-        document.getElementById('yearVal').innerText = data.y;
+        // الأرقام الأساسية
+        document.getElementById('foleyVal').innerText = d.foley;
+        document.getElementById('centralVal').innerText = d.central;
+        document.getElementById('ettVal').innerText = d.ett;
+        document.getElementById('ttVal').innerText = d.tt;
+        document.getElementById('ivVal').innerText = d.iv;
+        document.getElementById('totalPtVal').innerText = d.total;
 
-        // الإحصائيات الستة
-        document.getElementById('totalPtVal').innerText = data.total;
-        document.getElementById('foleyVal').innerText = data.foley;
-        document.getElementById('centralVal').innerText = data.central;
-        document.getElementById('ettVal').innerText = data.ett;
-        document.getElementById('ttVal').innerText = data.tt;
-        document.getElementById('ivVal').innerText = data.iv;
+        // تحديث دوائر الـ Total Pt الجانبية
+        for(let i=1; i<=5; i++) {
+            document.getElementById('t'+i).innerText = d.total;
+        }
 
-        current = (current + 1) % records.length;
+        currentIdx = (currentIdx + 1) % dataRecords.length;
     }
 
-    setInterval(updateDashboard, 3000);
-    updateDashboard();
+    setInterval(refresh, 3500);
+    refresh();
 </script>
 </body>
 </html>
