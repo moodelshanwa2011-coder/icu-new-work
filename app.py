@@ -3,9 +3,9 @@ import plotly.graph_objects as go
 import time
 
 # 1. إعدادات الصفحة
-st.set_page_config(page_title="ICU Performance Hub", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="ICU Dashboard", layout="wide", initial_sidebar_state="collapsed")
 
-# 2. CSS الاحترافي - تركيز على المسافات والمسميات الكاملة
+# 2. CSS الاحترافي المستقر
 st.markdown("""
     <style>
     [data-testid="stAppViewContainer"] { background-color: #000000; color: #ffffff; }
@@ -14,7 +14,7 @@ st.markdown("""
     .kpi-card {
         position: relative; background-color: #0a0a0a; border-radius: 12px;
         overflow: hidden; display: flex; flex-direction: column; justify-content: center;
-        text-align: center; height: 160px; margin-bottom: 30px; /* مسافة تحت المربعات */
+        text-align: center; height: 160px; margin-bottom: 30px;
     }
     .kpi-card::before {
         content: ''; position: absolute; width: 180%; height: 180%;
@@ -71,16 +71,16 @@ st.markdown("""
 
 if 'step' not in st.session_state: st.session_state.step = 0
 
-# 3. داتا المؤشرات الـ 12
+# 3. داتا المؤشرات (استخدام Q1, Q2 بدل Cycle)
 data_source = [
     {
-        "period": "CYCLE A - 2026",
+        "period": "1Q 2026",
         "squares": [("Falls", 0.0, 0.18), ("Injuries", 0.0, 0.04), ("HAPI %", 6.67, 4.58), ("CLABSI", 1.5, 3.3), ("CAUTI", 0.0, 0.4), ("VAP", 1.2, 2.1)],
         "circles": [("Restraints", 0.45, 0.9), ("VAE Rate", 1.6, 3.4), ("Turnover", 2.5, 3.0), ("Nurse Hr", 14.5, 12.0), ("RN Edu", 85.0, 70.5), ("C-Diff", 0.0, 0.1)],
         "census": 32, "occ": "88.9%", "ett": 14, "foley": 18, "cvc": 9, "stay": 3.4
     },
     {
-        "period": "CYCLE B - 2025",
+        "period": "4Q 2025",
         "squares": [("Falls", 0.2, 0.1), ("Injuries", 0.1, 0.0), ("HAPI %", 11.0, 6.0), ("CLABSI", 1.2, 2.5), ("CAUTI", 0.5, 0.8), ("VAP", 2.0, 2.1)],
         "circles": [("Restraints", 0.6, 0.9), ("VAE Rate", 2.0, 3.4), ("Turnover", 3.0, 3.0), ("Nurse Hr", 12.0, 12.0), ("RN Edu", 80.0, 70.0), ("C-Diff", 0.1, 0.1)],
         "census": 30, "occ": "83.3%", "ett": 11, "foley": 15, "cvc": 10, "stay": 2.8
@@ -88,11 +88,11 @@ data_source = [
 ]
 d = data_source[st.session_state.step % 2]
 
-# الهيدر
-st.markdown(f"<h1 style='text-align: center; color: #00d4ff; font-size: 40px; font-weight:900;'>ICU STRATEGIC COMMAND HUB</h1>", unsafe_allow_html=True)
-st.markdown(f"<p style='text-align: center; color: #444; font-weight: bold;'>{d['period']}</p>", unsafe_allow_html=True)
+# الهيدر الجديد كما طلبت
+st.markdown(f"<h1 style='text-align: center; color: #00d4ff; font-size: 45px; font-weight:900; letter-spacing: 2px;'>ICU DASHBOARD</h1>", unsafe_allow_html=True)
+st.markdown(f"<p style='text-align: center; color: #444; font-weight: bold;'>PERIOD: {d['period']}</p>", unsafe_allow_html=True)
 
-# 4. الصف الأول: المربعات الـ 6 (بمسمى BENCHMARK)
+# 4. المربعات الـ 6
 cols1 = st.columns(6)
 for i, (lab, val, bm) in enumerate(d['squares']):
     color = "#00ffaa" if val <= bm else "#ff4b4b"
@@ -103,7 +103,7 @@ for i, (lab, val, bm) in enumerate(d['squares']):
             <div class="bm-full-text">BENCHMARK: {bm}</div>
         </div></div>""", unsafe_allow_html=True)
 
-# 5. الصف الثاني: الدوائر الـ 6 (مع مسافة علوية ممتازة)
+# 5. الدوائر الـ 6 مع مسافات مضبوطة
 st.markdown("<div style='margin-top:20px;'></div>", unsafe_allow_html=True)
 cols2 = st.columns(6)
 for i, (lab, val, bm) in enumerate(d['circles']):
@@ -156,7 +156,6 @@ with c2:
     )
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
-# التحديث التلقائي
 time.sleep(15)
 st.session_state.step += 1
 st.rerun()
