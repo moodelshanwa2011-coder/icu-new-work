@@ -5,12 +5,12 @@ import time
 # 1. إعدادات الصفحة
 st.set_page_config(page_title="ICU Dashboard", layout="wide", initial_sidebar_state="collapsed")
 
-# 2. CSS - تثبيت العلوي وتطوير السفلي
+# 2. CSS - تثبيت العلوي وتطوير السفلي (عدادات نصف دائرة)
 st.markdown("""
     <style>
     [data-testid="stAppViewContainer"] { background-color: #000000; color: #ffffff; }
     
-    /* --- المربعات والدواير (مثبتة كما هي) --- */
+    /* === الجزء العلوي (مثبت ومحمي كما هو) === */
     .kpi-card {
         position: relative; background-color: #0a0a0a; border-radius: 20px;
         overflow: hidden; display: flex; flex-direction: column; justify-content: center;
@@ -45,30 +45,28 @@ st.markdown("""
     .cyan-val { color: #00d4ff; font-size: 60px; font-weight: 900; }
     .bm-full-text { color: #555555; font-size: 14px; font-weight: bold; margin-top: 10px; text-transform: uppercase; }
 
-    /* --- التصميم الجديد لمنطقة الأجهزة (Devices) --- */
-    .device-grid {
-        display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 20px;
+    /* === الجزء السفلي الجديد والمطور === */
+    
+    /* تقليل حجم Current Census جداً */
+    .census-box-mini {
+        background: #0a0a0a; border: 2px solid #FFD700; border-radius: 12px; 
+        padding: 15px 25px; text-align: left; position: relative; max-width: 250px;
+        margin-bottom: 20px;
     }
-    .device-mini-card {
-        background: linear-gradient(145deg, #0f0f0f, #050505);
-        border: 1px solid #1a1a1a; border-left: 4px solid #00d4ff;
-        padding: 20px; border-radius: 12px; text-align: left;
-    }
-    .device-label { color: #666; font-size: 14px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
-    .device-number { color: #ffffff; font-size: 32px; font-weight: 900; }
+    .census-label-mini { color: #FFD700; font-size: 12px; font-weight: bold; text-transform: uppercase; }
+    .census-num-mini { color: #FFD700; font-size: 40px; font-weight: 900; line-height: 1; margin: 5px 0; }
+    .occ-text-mini { color: #FFD700; font-size: 13px; font-weight: bold; }
 
-    /* كارت Census المطور */
-    .census-box {
-        background: #0a0a0a; border: 2px solid #FFD700; border-radius: 20px; 
-        padding: 40px; text-align: center; position: relative;
+    /* حاوية العدادات نصف الدائرية */
+    .gauge-grid {
+        display: flex; justify-content: space-around; gap: 10px; margin-top: 10px;
     }
-    .census-num { color: #FFD700; font-size: 85px; font-weight: 900; line-height: 1; }
-    .occ-pill {
-        display: inline-block; background: #FFD700; color: #000; 
-        padding: 5px 20px; border-radius: 50px; font-weight: 900; font-size: 18px; margin-top: 15px;
+    .gauge-item {
+        text-align: center; background: #080808; padding: 10px; border-radius: 12px;
+        width: 180px; /* حجم ملموم للعداد */
     }
 
-    .side-header { color: #00d4ff; font-size: 26px; font-weight: 900; margin-bottom: 20px; text-transform: uppercase; }
+    .side-header { color: #00d4ff; font-size: 26px; font-weight: 900; margin-bottom: 15px; text-transform: uppercase; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -88,18 +86,42 @@ d = data_source[st.session_state.step % 2]
 # حساب النسبة تلقائياً من 36
 occ_percent = round((d['census'] / 36) * 100, 1)
 
+# دالة لإنشاء عداد نصف دائري (Semi-Circle Gauge) ملون
+def create_gauge(label, value, max_val, color_scheme):
+    fig = go.Figure(go.Indicator(
+        mode = "gauge+number",
+        value = value,
+        domain = {'x': [0, 1], 'y': [0, 1]},
+        title = {'text': label, 'font': {'size': 14, 'color': '#888'}, 'align': 'center'},
+        number = {'font': {'size': 35, 'color': '#fff', 'family': 'Black Arial'}, 'suffix': ''},
+        gauge = {
+            'axis': {'range': [None, max_val], 'tickwidth': 1, 'tickcolor': "#333", 'tickmode': 'array', 'tickvals': []},
+            'bar': {'color': "#222"}, # لون المؤشر نفسه داكن
+            'bgcolor': "#000",
+            'borderwidth': 0,
+            'steps': [
+                {'range': [0, color_scheme[0]], 'color': "#00ffaa"}, # أخضر
+                {'range': [color_scheme[0], color_scheme[1]], 'color': "#FFD700"}, # أصفر
+                {'range': [color_scheme[1], max_val], 'color': "#ff4b4b"} # أحمر
+            ],
+        }
+    ))
+    fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
+                      margin=dict(t=0, b=0, l=10, r=10), height=140)
+    return fig
+
 # الهيدر
 st.markdown(f"<h1 style='text-align: center; color: #00d4ff; font-size: 50px; font-weight:900; letter-spacing: 3px;'>ICU DASHBOARD</h1>", unsafe_allow_html=True)
 st.markdown(f"<p style='text-align: center; color: #444; font-weight: bold; font-size: 20px; margin-bottom: 30px;'>PERIOD: {d['period']}</p>", unsafe_allow_html=True)
 
-# 4. المربعات الـ 6 (مثبتة)
+# 4. المربعات الـ 6 العملاقة (مثبتة)
 cols1 = st.columns(6)
 for i, (lab, val, bm) in enumerate(d['squares']):
     color = "#00ffaa" if val <= bm else "#ff4b4b"
     with cols1[i]:
         st.markdown(f"""<div class="kpi-card"><div class="z-layer"><div class="gray-label">{lab}</div><div class="cyan-val" style="color:{color}">{val}</div><div class="bm-full-text">BENCHMARK: {bm}</div></div></div>""", unsafe_allow_html=True)
 
-# 5. الدوائر الـ 6 (مثبتة)
+# 5. الدوائر الـ 6 العملاقة (مثبتة)
 st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
 cols2 = st.columns(6)
 for i, (lab, val, bm) in enumerate(d['circles']):
@@ -110,30 +132,34 @@ for i, (lab, val, bm) in enumerate(d['circles']):
 
 st.markdown("<hr style='border-color:#111; margin:60px 0;'>", unsafe_allow_html=True)
 
-# 6. الجزء السفلي المطور (Census & Devices)
-c1, c2 = st.columns([1.5, 2.5])
+# 6. الجزء السفلي المطور (Current Census مصغر + عدادات الأجهزة)
+c1, c2 = st.columns([1.8, 2.2])
 
 with c1:
-    # كارت الـ Census مع النسبة التلقائية
+    # 6.1 تقليل حجم الكرنت سينسس جداً
     st.markdown(f"""
-    <div class="census-box">
-        <div style="color:#FFD700; font-weight:bold; letter-spacing:2px;">CURRENT CENSUS</div>
-        <div class="census-num">{d['census']}</div>
-        <div class="occ-pill">OCCUPANCY: {occ_percent}%</div>
+    <div class="census-box-mini">
+        <div class="census-label-mini">Current Census</div>
+        <div class="census-num-mini">{d['census']}</div>
+        <div class="occ-text-mini">Occupancy: {occ_percent}% (of 36)</div>
     </div>
     """, unsafe_allow_html=True)
     
-    # شبكة الأجهزة بتصميم جديد
-    st.markdown('<div class="device-grid">', unsafe_allow_html=True)
-    devs = [("Pt with ETT", d['ett']), ("Pt with Foley", d['foley']), ("Pt with CVC", d['cvc']), ("Avg Stay", d['stay'])]
-    for name, val in devs:
-        st.markdown(f"""
-        <div class="device-mini-card">
-            <div class="device-label">{name}</div>
-            <div class="device-number">{val}</div>
-        </div>
-        """, unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    # 6.2 إنشاء عدادات الأجهزة بتصميم نصف دائري ملون
+    st.markdown('<div class="side-header">Device Utilization</div>', unsafe_allow_html=True)
+    
+    col_g1, col_g2, col_g3, col_g4 = st.columns(4)
+    
+    # حدود الألوان الديناميكية لكل جهاز [حد الأخضر، حد الأصفر]
+    with col_g1:
+        st.plotly_chart(create_gauge("Pt with ETT", d['ett'], 36, [10, 20]), use_container_width=True, config={'displayModeBar': False})
+    with col_g2:
+        st.plotly_chart(create_gauge("Pt with Foley", d['foley'], 36, [15, 25]), use_container_width=True, config={'displayModeBar': False})
+    with col_g3:
+        st.plotly_chart(create_gauge("Pt with CVC", d['cvc'], 36, [8, 15]), use_container_width=True, config={'displayModeBar': False})
+    with col_g4:
+        #Avg Stay له حدود ألوان مختلفة
+        st.plotly_chart(create_gauge("Avg Stay", d['stay'], 10, [3, 6]), use_container_width=True, config={'displayModeBar': False})
 
 with c2:
     st.markdown('<div class="side-header" style="margin-left:20px;">PERFORMANCE ANALYTICS</div>', unsafe_allow_html=True)
