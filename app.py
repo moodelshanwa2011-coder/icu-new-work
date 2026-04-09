@@ -1,120 +1,123 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-# إعداد الصفحة
-st.set_page_config(page_title="ICU PRO MONITORING", layout="wide", initial_sidebar_state="collapsed")
+# إعداد الصفحة لتكون بملء الشاشة وإخفاء القائمة الجانبية
+st.set_page_config(page_title="شاشة مراقبة المؤشرات الإكلينيكية", layout="wide", initial_sidebar_state="collapsed")
 
 dashboard_html = """
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --bg: #020617;
-            --primary: #00f2ff; /* Ice Blue */
-            --secondary: #ffffff; /* Pearl White */
-            --panel: rgba(15, 23, 42, 0.95);
-            --border: rgba(0, 242, 255, 0.4);
+            --bg: #050a09; /* كربوني داكن جداً */
+            --emerald: #00f2a1; /* أخضر زمردي مشع */
+            --white: #ffffff;
+            --panel: rgba(10, 20, 19, 0.9); /* لوحة كربونية */
+            --border: rgba(0, 242, 161, 0.3); /* حدود زمردية شفافة */
         }
         
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg);
-            background-image: radial-gradient(circle at 50% 50%, rgba(0, 242, 255, 0.05) 0%, transparent 80%);
-            color: var(--secondary); margin: 0; padding: 15px; overflow: hidden;
+            background-image: radial-gradient(circle at 50% 50%, rgba(0, 242, 161, 0.05) 0%, transparent 80%);
+            color: var(--white); margin: 0; padding: 20px; overflow: hidden;
         }
 
         .header {
             display: flex; justify-content: space-between; align-items: center;
-            background: var(--panel); padding: 20px 45px; border-radius: 15px;
-            border: 2px solid var(--primary); margin-bottom: 20px;
-            box-shadow: 0 0 30px rgba(0, 242, 255, 0.2);
+            background: var(--panel); padding: 15px 50px; border-radius: 50px;
+            border: 2px solid var(--emerald); margin-bottom: 25px;
+            box-shadow: 0 0 30px rgba(0, 242, 161, 0.2);
         }
 
-        .main-grid {
+        .circles-grid {
             display: grid; grid-template-columns: repeat(4, 1fr);
-            gap: 20px; margin-bottom: 20px;
+            gap: 25px; margin-bottom: 25px; align-items: center;
         }
 
-        .panel {
-            background: var(--panel); border: 2px solid var(--border);
-            border-radius: 20px; padding: 25px; backdrop-filter: blur(10px);
-            position: relative; overflow: hidden;
+        .circle-panel {
+            background: var(--panel); border: 3px solid var(--border);
+            border-radius: 50%; width: 280px; height: 280px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            backdrop-filter: blur(10px); margin: auto;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3), inset 0 0 15px rgba(0, 242, 161, 0.1);
+            transition: all 0.5s ease;
         }
 
-        .panel::before {
-            content: ''; position: absolute; top: 0; left: 0; width: 5px; height: 100%;
-            background: var(--primary);
+        .circle-panel.large { width: 350px; height: 350px; grid-column: span 2; }
+
+        .circle-title {
+            font-size: 1.1rem; font-weight: 800; color: var(--emerald);
+            text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px;
         }
 
-        .panel-title {
-            font-size: 1.1rem; font-weight: 800; color: var(--primary);
-            text-transform: uppercase; letter-spacing: 3px; margin-bottom: 20px;
+        .val { font-size: 6rem; font-weight: 900; line-height: 1; color: var(--emerald); text-shadow: 0 0 20px rgba(0, 242, 161, 0.5); }
+        .large .val { font-size: 8rem; }
+        .lbl { font-size: 1.1rem; color: var(--white); font-weight: 700; margin-top: 10px; }
+
+        .footer-grid { display: grid; grid-template-columns: 2.5fr 1.5fr; gap: 25px; height: 350px; }
+
+        .chart-panel {
+            background: var(--panel); border: 3px solid var(--border);
+            border-radius: 30px; padding: 25px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
         }
 
-        .box {
-            background: rgba(255, 255, 255, 0.02); border: 1.5px solid var(--border);
-            border-radius: 15px; padding: 30px 15px; text-align: center;
-        }
+        .chart-title { font-size: 1.3rem; font-weight: 800; color: var(--emerald); margin-bottom: 15px; text-align: right; }
 
-        .val { font-size: 4.8rem; font-weight: 900; display: block; line-height: 1; color: var(--primary); text-shadow: 0 0 20px rgba(0, 242, 255, 0.3); }
-        .lbl { font-size: 1rem; color: var(--secondary); text-transform: uppercase; font-weight: 700; margin-top: 15px; letter-spacing: 1px;}
-
-        .footer { display: grid; grid-template-columns: 2.8fr 1.2fr; gap: 20px; height: 380px; }
-
-        .ring-container { position: relative; width: 220px; height: 220px; margin: auto; }
-        .ring-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 4.5rem; font-weight: 900; color: var(--primary); }
+        .ring-container { position: relative; width: 280px; height: 280px; margin: auto; }
+        .ring-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 5rem; font-weight: 900; color: var(--emerald); }
         
         .ring-svg { transform: rotate(-90deg); width: 100%; height: 100%; }
         .ring-track { fill: none; stroke: rgba(255,255,255,0.05); stroke-width: 10; } 
         .ring-progress { 
-            fill: none; stroke: var(--primary); stroke-width: 10; 
+            fill: none; stroke: var(--emerald); stroke-width: 10; 
             stroke-dasharray: 283; stroke-dashoffset: 283; 
-            stroke-linecap: round; transition: 1.5s ease;
+            stroke-linecap: round; transition: 1.5s ease-out;
         }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <div style="font-size: 2.5rem; font-weight: 900; letter-spacing: 5px;">ICU <span style="color:var(--primary)">PRO</span> MONITOR</div>
-    <div id="timelineLabel" style="background: var(--primary); color: #020617; padding: 10px 40px; border-radius: 40px; font-weight: 900; font-size: 1.3rem;">...</div>
+    <div style="font-size: 2.2rem; font-weight: 900; letter-spacing: 1px;">شاشة مراقبة <span style="color:var(--emerald)">المؤشرات الإكلينيكية</span></div>
+    <div id="dateLabel" style="background: var(--emerald); color: #000; padding: 10px 45px; border-radius: 50px; font-weight: 900; font-size: 1.5rem;">...</div>
 </div>
 
-<div class="main-grid">
-    <div class="panel">
-        <div class="panel-title">Mortality Index</div>
-        <div class="box">
-            <span class="val" id="mortVal">0</span>
-            <span class="lbl">Patient Deaths</span>
+<div class="circles-grid">
+    <div class="circle-panel">
+        <div class="circle-title">إحصائيات الوفيات</div>
+        <span class="val" id="mortVal">0</span>
+        <span class="lbl">عدد الوفيات</span>
+    </div>
+    
+    <div class="circle-panel large">
+        <div class="circle-title">مؤشرات جودة الرعاية</div>
+        <div style="display: flex; gap: 20px; align-items: center; justify-content: center;">
+            <div style="text-align:center;"><span class="val">1.1</span><span class="lbl">عدوى الدم</span></div>
+            <div style="text-align:center;"><span class="val">0.7</span><span class="lbl">عدوى البول</span></div>
+            <div style="text-align:center;"><span class="val">1.5</span><span class="lbl">عدوى التنفس</span></div>
         </div>
     </div>
-    <div class="panel" style="grid-column: span 2;">
-        <div class="panel-title">Clinical Quality Performance</div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
-            <div class="box"><span class="val">1.1</span><span class="lbl">CLABSI Rate</span></div>
-            <div class="box"><span class="val">0.7</span><span class="lbl">CAUTI Rate</span></div>
-            <div class="box"><span class="val">1.9</span><span class="lbl">VAE Index</span></div>
-        </div>
-    </div>
-    <div class="panel">
-        <div class="panel-title">Safety Control</div>
-        <div class="box">
-            <span class="val">98%</span>
-            <span class="lbl">Compliance</span>
-        </div>
+    
+    <div class="circle-panel">
+        <div class="circle-title">كفاءة القسم</div>
+        <span class="val">96%</span>
+        <span class="lbl">نسبة الالتزام</span>
     </div>
 </div>
 
-<div class="footer">
-    <div class="panel">
-        <div class="panel-title">Operational Achievement Equalizer</div>
-        <canvas id="proChart"></canvas>
+<div class="footer-grid">
+    <div class="chart-panel">
+        <div class="chart-title">تحليل الأداء الديناميكي (عدد الوفيات مقابل الهدف)</div>
+        <canvas id="emeraldChart"></canvas>
     </div>
-    <div class="panel">
-        <div class="panel-title" style="text-align: center;">Unit Health Score</div>
+    
+    <div class="circle-panel" style="width: 350px; height: 350px;">
+        <div class="circle-title">مؤشر أمان الوحدة</div>
         <div class="ring-container">
             <div id="safetyVal" class="ring-text">0%</div>
             <svg class="ring-svg" viewBox="0 0 100 100">
@@ -126,39 +129,43 @@ dashboard_html = """
 </div>
 
 <script>
-    // بيانات الوفيات الفعلية من ملفك لسنوات 2023, 2024, 2025
-    const dataset = [
-        {m: "JAN 23", v: 8}, {m: "FEB 23", v: 4}, {m: "MAR 23", v: 7}, {m: "APR 23", v: 5}, {m: "MAY 23", v: 3}, {m: "JUN 23", v: 8},
-        {m: "JUL 23", v: 3}, {m: "AUG 23", v: 4}, {m: "SEP 23", v: 7}, {m: "OCT 23", v: 2}, {m: "NOV 23", v: 3}, {m: "DEC 23", v: 4},
-        {m: "JAN 24", v: 8}, {m: "FEB 24", v: 4}, {m: "MAR 24", v: 7}, {m: "APR 24", v: 5}, {m: "MAY 24", v: 3}, {m: "JUN 24", v: 8},
-        {m: "JUL 25", v: 2}, {m: "AUG 25", v: 8}, {m: "SEP 25", v: 2}, {m: "OCT 25", v: 1}, {m: "NOV 25", v: 3}, {m: "DEC 25", v: 6}
+    // البيانات الفعلية من ملفك الخاص
+    const months = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+    const data2023 = [8, 4, 7, 5, 3, 8, 3, 4, 7, 2, 3, 4];
+    const data2024 = [8, 4, 7, 5, 3, 8, 3, 4, 7, 2, 3, 4]; // نفس بيانات 23 حسب الملف
+    const data2025 = [6, 3, 7, 7, 1, 6, 2, 8, 2, 1, 3, 6];
+
+    // تجميع البيانات في مصفوفة زمنية واحدة
+    const timeline = [
+        ...data2023.map((v, i) => ({ date: months[i] + " 2023", val: v })),
+        ...data2024.map((v, i) => ({ date: months[i] + " 2024", val: v })),
+        ...data2025.map((v, i) => ({ date: months[i] + " 2025", val: v }))
     ];
-    
+
     let idx = 0;
     let chart;
 
     function refresh() {
-        const current = dataset[idx];
-        document.getElementById('timelineLabel').innerText = current.m;
-        document.getElementById('mortVal').innerText = current.v;
+        const current = timeline[idx];
+        document.getElementById('dateLabel').innerText = current.date;
+        document.getElementById('mortVal').innerText = current.val;
         
-        // حساب مجموعي للسكور
-        const score = Math.max(70, 100 - (current.v * 3.5));
-        document.getElementById('safetyVal').innerText = Math.round(score) + "%";
-        document.getElementById('safetyRing').style.strokeDashoffset = 283 - (283 * score / 100);
+        // حساب نسبة الأمان (معادلة عكسية مع عدد الوفيات)
+        const safetyScore = Math.max(65, 100 - (current.val * 4));
+        document.getElementById('safetyVal').innerText = Math.round(safetyScore) + "%";
+        document.getElementById('safetyRing').style.strokeDashoffset = 283 - (283 * safetyScore / 100);
 
-        const chartData = [current.v * 1.5, 6, 8, 5, 9];
-
+        // تحديث الرسم البياني
         if(!chart) {
-            const ctx = document.getElementById('proChart').getContext('2d');
+            const ctx = document.getElementById('emeraldChart').getContext('2d');
             chart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: ['MORTALITY', 'INFECTION', 'VAE', 'SAFETY', 'COMPLIANCE'],
+                    labels: ['الوفيات', 'العدوى', 'التنفس', 'الالتزام', 'القوى العاملة'],
                     datasets: [{
-                        data: chartData,
-                        backgroundColor: '#00f2ff',
-                        borderRadius: 5,
+                        data: [current.val, 5, 8, 4, 7],
+                        backgroundColor: '#00f2a1', // زمردي مشع
+                        borderRadius: 10,
                         barThickness: 50
                     }]
                 },
@@ -167,36 +174,27 @@ dashboard_html = """
                     plugins: { legend: { display: false } },
                     scales: {
                         y: { display: false },
-                        x: { ticks: { color: '#ffffff', font: { weight: 'bold', size: 12 } }, grid: { display: false } }
+                        x: { 
+                            ticks: { color: '#ffffff', font: { weight: 'bold', size: 14 } },
+                            grid: { display: false }
+                        }
                     }
-                },
-                plugins: [{
-                    id: 'eqLines',
-                    afterDraw: (c) => {
-                        const { ctx } = c; ctx.save();
-                        ctx.strokeStyle = '#020617'; ctx.lineWidth = 4;
-                        c.getDatasetMeta(0).data.forEach(bar => {
-                            for(let y = bar.base; y > bar.y; y -= 12) {
-                                ctx.beginPath(); ctx.moveTo(bar.x - bar.width/2, y);
-                                ctx.lineTo(bar.x + bar.width/2, y); ctx.stroke();
-                            }
-                        });
-                        ctx.restore();
-                    }
-                }]
+                }
             });
         } else {
-            chart.data.datasets[0].data = chartData;
-            chart.update('none');
+            // تحديث قيمة الوفيات فقط في الرسم البياني
+            chart.data.datasets[0].data[0] = current.val;
+            chart.update('none'); // تحديث بدون حركة لإعطاء إحساس بالسرعة
         }
-        idx = (idx + 1) % dataset.length;
+        idx = (idx + 1) % timeline.length;
     }
 
-    setInterval(refresh, 3500);
-    refresh();
+    // تحديث البيانات كل 3 ثوانٍ
+    setInterval(refresh, 3000);
+    refresh(); // التحديث الأولي
 </script>
 </body>
 </html>
 """
 
-components.html(dashboard_html, height=1000, scrolling=False)
+components.html(dashboard_html, height=1050, scrolling=False)
