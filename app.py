@@ -5,7 +5,7 @@ import time
 # 1. إعدادات الصفحة
 st.set_page_config(page_title="ICU Performance Hub", layout="wide", initial_sidebar_state="collapsed")
 
-# 2. CSS المستقر والنهائي
+# 2. CSS الاحترافي - تركيز على المسافات والمسميات الكاملة
 st.markdown("""
     <style>
     [data-testid="stAppViewContainer"] { background-color: #000000; color: #ffffff; }
@@ -14,7 +14,7 @@ st.markdown("""
     .kpi-card {
         position: relative; background-color: #0a0a0a; border-radius: 12px;
         overflow: hidden; display: flex; flex-direction: column; justify-content: center;
-        text-align: center; height: 155px; margin-bottom: 20px;
+        text-align: center; height: 160px; margin-bottom: 30px; /* مسافة تحت المربعات */
     }
     .kpi-card::before {
         content: ''; position: absolute; width: 180%; height: 180%;
@@ -27,7 +27,7 @@ st.markdown("""
 
     /* الدوائر (الصف الثاني) */
     .circle-container {
-        position: relative; width: 140px; height: 140px; border-radius: 50%;
+        position: relative; width: 135px; height: 135px; border-radius: 50%;
         margin: auto; overflow: hidden; display: flex; justify-content: center; align-items: center;
     }
     .circle-container::before {
@@ -47,7 +47,7 @@ st.markdown("""
     .z-layer { position: relative; z-index: 10; width: 100%; }
     .gray-label { color: #aaaaaa; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
     .cyan-val { color: #00d4ff; font-size: 32px; font-weight: 900; }
-    .bm-text { color: #444444; font-size: 11px; font-weight: bold; margin-top: 4px; }
+    .bm-full-text { color: #444444; font-size: 10px; font-weight: bold; margin-top: 5px; text-transform: uppercase; }
 
     /* كارت Census الذهبي */
     .census-container {
@@ -71,7 +71,7 @@ st.markdown("""
 
 if 'step' not in st.session_state: st.session_state.step = 0
 
-# 3. داتا المؤشرات الـ 12 كاملة
+# 3. داتا المؤشرات الـ 12
 data_source = [
     {
         "period": "CYCLE A - 2026",
@@ -92,7 +92,7 @@ d = data_source[st.session_state.step % 2]
 st.markdown(f"<h1 style='text-align: center; color: #00d4ff; font-size: 40px; font-weight:900;'>ICU STRATEGIC COMMAND HUB</h1>", unsafe_allow_html=True)
 st.markdown(f"<p style='text-align: center; color: #444; font-weight: bold;'>{d['period']}</p>", unsafe_allow_html=True)
 
-# 4. المربعات الـ 6 (الصف الأول)
+# 4. الصف الأول: المربعات الـ 6 (بمسمى BENCHMARK)
 cols1 = st.columns(6)
 for i, (lab, val, bm) in enumerate(d['squares']):
     color = "#00ffaa" if val <= bm else "#ff4b4b"
@@ -100,10 +100,11 @@ for i, (lab, val, bm) in enumerate(d['squares']):
         st.markdown(f"""<div class="kpi-card"><div class="z-layer">
             <div class="gray-label">{lab}</div>
             <div class="cyan-val" style="color:{color}">{val}</div>
-            <div class="bm-text">BENCHMARK: {bm}</div>
+            <div class="bm-full-text">BENCHMARK: {bm}</div>
         </div></div>""", unsafe_allow_html=True)
 
-# 5. الدوائر الـ 6 (الصف الثاني - المستعادة)
+# 5. الصف الثاني: الدوائر الـ 6 (مع مسافة علوية ممتازة)
+st.markdown("<div style='margin-top:20px;'></div>", unsafe_allow_html=True)
 cols2 = st.columns(6)
 for i, (lab, val, bm) in enumerate(d['circles']):
     is_rev = any(x in lab for x in ["Hr", "Edu"])
@@ -114,14 +115,14 @@ for i, (lab, val, bm) in enumerate(d['circles']):
             <div class="circle-container"><div class="z-layer">
                 <div class="cyan-val" style="font-size: 24px; color:{color}">{val}</div>
             </div></div>
-            <div class="gray-label" style="margin-top:10px; font-size:11px;">{lab}</div>
-            <div class="bm-text" style="color:#333;">BM: {bm}</div>
+            <div class="gray-label" style="margin-top:12px; font-size:11px;">{lab}</div>
+            <div class="bm-full-text" style="color:#333;">BENCHMARK: {bm}</div>
         </div>
         """, unsafe_allow_html=True)
 
-st.markdown("<hr style='border-color:#111; margin:30px 0;'>", unsafe_allow_html=True)
+st.markdown("<hr style='border-color:#111; margin:40px 0;'>", unsafe_allow_html=True)
 
-# 6. الجزء السفلي (Census / Devices / Bar)
+# 6. الجزء السفلي
 c1, c2 = st.columns([1.3, 2.5])
 
 with c1:
