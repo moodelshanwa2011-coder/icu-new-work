@@ -5,7 +5,7 @@ import time
 # 1. إعدادات الصفحة
 st.set_page_config(page_title="ICU Dashboard", layout="wide", initial_sidebar_state="collapsed")
 
-# 2. CSS (التنسيق الأصلي المعتمد - الجزء العلوي صخر لا يتغير)
+# 2. CSS - الجزء العلوي صخر (ممنوع اللمس) والسفلي مرن
 st.markdown("""
     <style>
     [data-testid="stAppViewContainer"] { background-color: #000000; color: #ffffff; }
@@ -20,7 +20,7 @@ st.markdown("""
         animation: rotate-wave 4s linear infinite; top: 50%; left: 50%;
     }
     .kpi-card::after {
-        content: ''; position: absolute; background-color: #0a0a0a; inset: 6px; border-radius: 166px;
+        content: ''; position: absolute; background-color: #0a0a0a; inset: 6px; border-radius: 16px;
     }
     .circle-container {
         position: relative; width: 230px; height: 230px; border-radius: 50%;
@@ -43,7 +43,6 @@ st.markdown("""
     .cyan-val { color: #00d4ff; font-size: 60px; font-weight: 900; }
     .bm-full-text { color: #444444; font-size: 14px; font-weight: bold; margin-top: 10px; text-transform: uppercase; }
     
-    /* الجزء السفلي */
     .census-box-mini { background: #0a0a0a; border: 2px solid #FFD700; border-radius: 12px; padding: 15px 25px; text-align: left; max-width: 250px; margin-bottom: 20px; }
     .census-num-mini { color: #FFD700; font-size: 40px; font-weight: 900; line-height: 1; margin: 5px 0; }
     .gauge-label-bottom { color: #ffffff; font-size: 14px; font-weight: 900; text-transform: uppercase; margin-top: -20px; text-align: center; }
@@ -52,22 +51,22 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 3. داتا السيكل (الجزء المسؤول عن التغيير فقط)
+# 3. داتا الأسابيع (مأخوذة من آخر يوم في كل أسبوع)
 if 'week_index' not in st.session_state: st.session_state.week_index = 0
 
 all_weeks = [
-    {"date": "March 07", "q": "1Q 2026", "census": 30, "dev": [11, 27, 18, 4.1], "bar_val": [0.0, 0.0, 6.67, 1.5, 0.0, 1.2]},
-    {"date": "March 14", "q": "1Q 2026", "census": 33, "dev": [14, 30, 21, 4.5], "bar_val": [0.1, 0.0, 7.20, 1.2, 0.2, 1.0]},
-    {"date": "March 21", "q": "1Q 2026", "census": 28, "dev": [9, 25, 16, 3.8], "bar_val": [0.0, 0.0, 5.50, 0.8, 0.0, 1.5]},
-    {"date": "March 28", "q": "1Q 2026", "census": 35, "dev": [16, 33, 25, 5.2], "bar_val": [0.2, 0.1, 8.10, 2.0, 0.5, 2.1]},
-    {"date": "April 04", "q": "2Q 2026", "census": 31, "dev": [12, 28, 20, 4.3], "bar_val": [0.0, 0.0, 6.80, 1.4, 0.1, 1.3]}
+    {"label": "First Week of March", "census": 31, "dev": [12, 28, 19, 4.2], "bar": [0.0, 0.0, 6.67, 1.5, 0.0, 1.2]},
+    {"label": "Second Week of March", "census": 33, "dev": [14, 31, 22, 4.6], "bar": [0.1, 0.0, 7.20, 1.2, 0.2, 1.0]},
+    {"label": "Third Week of March", "census": 29, "dev": [10, 26, 17, 3.9], "bar": [0.0, 0.0, 5.50, 0.8, 0.0, 1.5]},
+    {"label": "Fourth Week of March", "census": 35, "dev": [16, 33, 26, 5.1], "bar": [0.2, 0.1, 8.10, 2.0, 0.5, 2.1]},
+    {"label": "First Week of April", "census": 32, "dev": [13, 29, 21, 4.4], "bar": [0.0, 0.0, 6.80, 1.4, 0.1, 1.3]}
 ]
 
 cur = all_weeks[st.session_state.week_index % len(all_weeks)]
 
-# الأرقام الثابتة للجزء العلوي
-sq_const = [("Falls", 0.0, 0.18), ("Injuries", 0.0, 0.04), ("HAPI %", 6.67, 4.58), ("CLABSI", 1.5, 3.3), ("CAUTI", 0.0, 0.4), ("VAP", 1.2, 2.1)]
-cir_const = [("Restraints", 0.45, 0.9), ("VAE Rate", 1.6, 3.4), ("Turnover", 2.5, 3.0), ("Nurse Hr", 14.5, 12.0), ("RN Edu", 85.0, 70.5), ("C-Diff", 0.0, 0.1)]
+# الجزء العلوي (ثابت بالأرقام)
+sq_fix = [("Falls", 0.0, 0.18), ("Injuries", 0.0, 0.04), ("HAPI %", 6.67, 4.58), ("CLABSI", 1.5, 3.3), ("CAUTI", 0.0, 0.4), ("VAP", 1.2, 2.1)]
+cir_fix = [("Restraints", 0.45, 0.9), ("VAE Rate", 1.6, 3.4), ("Turnover", 2.5, 3.0), ("Nurse Hr", 14.5, 12.0), ("RN Edu", 85.0, 70.5), ("C-Diff", 0.0, 0.1)]
 
 def create_gauge(v, mx, s):
     fig = go.Figure(go.Indicator(
@@ -81,19 +80,18 @@ def create_gauge(v, mx, s):
 
 # --- العرض ---
 st.markdown(f"<h1 style='text-align: center; color: #00d4ff; font-size: 50px; font-weight:900; letter-spacing: 3px;'>ICU DASHBOARD</h1>", unsafe_allow_html=True)
-st.markdown(f"<p style='text-align: center; color: #444; font-weight: bold; font-size: 20px; margin-bottom: 30px;'>PERIOD: {cur['q']}</p>", unsafe_allow_html=True)
+st.markdown(f"<p style='text-align: center; color: #444; font-weight: bold; font-size: 20px; margin-bottom: 30px;'>PERIOD: 1Q 2026</p>", unsafe_allow_html=True)
 
-# 4. الجزء العلوي الثابت (المربعات والدواير)
+# 4. المربعات والدوائر (ثابتة تماماً)
 cols1 = st.columns(6)
-for i, (name, val, bm) in enumerate(sq_const):
+for i, (name, val, bm) in enumerate(sq_fix):
     color = "#00ffaa" if val <= bm else "#ff4b4b"
     with cols1[i]:
         st.markdown(f"""<div class="kpi-card"><div class="z-layer"><div class="gray-label">{name}</div><div class="cyan-val" style="color:{color}">{val}</div><div class="bm-full-text">BENCHMARK: {bm}</div></div></div>""", unsafe_allow_html=True)
 
 st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
-
 cols2 = st.columns(6)
-for i, (name, val, bm) in enumerate(cir_const):
+for i, (name, val, bm) in enumerate(cir_fix):
     is_rev = any(x in name for x in ["Hr", "Edu"])
     color = "#00ffaa" if (val >= bm if is_rev else val <= bm) else "#ff4b4b"
     with cols2[i]:
@@ -101,11 +99,14 @@ for i, (name, val, bm) in enumerate(cir_const):
 
 st.markdown("<hr style='border-color:#111; margin:60px 0;'>", unsafe_allow_html=True)
 
-# 5. الجزء السفلي (الأجهزة والبار تشارت - التغيير هنا فقط)
+# 5. الجزء السفلي (الأجهزة والبار يتغيران حسب الأسبوع)
 c1, c2 = st.columns([2.2, 1.8])
 with c1:
     st.markdown(f"""<div class="census-box-mini"><div style="color:#FFD700; font-size:12px; font-weight:bold;">CURRENT CENSUS</div><div class="census-num-mini">{cur['census']}</div><div style="color:#FFD700; font-size:13px; font-weight:bold;">Occupancy: {round((cur['census']/36)*100,1)}%</div></div>""", unsafe_allow_html=True)
-    st.markdown(f'<div class="side-header">ATTACHED DEVICES <span class="week-text">({cur["date"]})</span></div>', unsafe_allow_html=True)
+    
+    # عنوان الأجهزة بالأسبوع المطلوب
+    st.markdown(f'<div class="side-header">ATTACHED DEVICES <span class="week-text">({cur["label"]})</span></div>', unsafe_allow_html=True)
+    
     g_cols = st.columns(4)
     dev_names = [("Pt with ETT", 36, [10, 18]), ("Pt with Foley", 36, [24, 30]), ("Pt with CVC", 36, [16, 22]), ("Avg Stay", 10, [4, 6])]
     for i, (n, m, s) in enumerate(dev_names):
@@ -116,11 +117,12 @@ with c1:
 with c2:
     st.markdown('<div class="side-header" style="margin-left:20px;">PERFORMANCE ANALYTICS</div>', unsafe_allow_html=True)
     fig = go.Figure()
-    fig.add_trace(go.Bar(x=[n[0] for n in sq_const], y=cur['bar_val'], name="Actual", marker_color='#00d4ff'))
-    fig.add_trace(go.Bar(x=[n[0] for n in sq_const], y=[n[2] for n in sq_const], name="Benchmark", marker_color='#1a1a1a'))
+    fig.add_trace(go.Bar(x=[n[0] for n in sq_fix], y=cur['bar'], name="Actual", marker_color='#00d4ff'))
+    fig.add_trace(go.Bar(x=[n[0] for n in sq_fix], y=[n[2] for n in sq_fix], name="Benchmark", marker_color='#1a1a1a'))
     fig.update_layout(height=450, barmode='group', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=20, b=0, l=0, r=0), legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center"))
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
+# حلقة التحديث التلقائي
 time.sleep(15)
 st.session_state.week_index += 1
 st.rerun()
