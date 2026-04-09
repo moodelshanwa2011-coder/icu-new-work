@@ -5,7 +5,7 @@ import time
 # 1. إعدادات الصفحة
 st.set_page_config(page_title="ICU Dashboard", layout="wide", initial_sidebar_state="collapsed")
 
-# 2. CSS المعتمد (ثبات كامل للهيكل)
+# 2. CSS (الهيكل العملاق محمي بالكامل)
 st.markdown("""
     <style>
     [data-testid="stAppViewContainer"] { background-color: #000000; color: #ffffff; }
@@ -64,7 +64,7 @@ all_weeks = [
 
 cur = all_weeks[st.session_state.week_index % len(all_weeks)]
 
-# الثوابت (الجزء العلوي)
+# الثوابت (الجزء العلوي المثبت)
 sq_fix = [("Falls", 0.0, 0.18), ("Injuries", 0.0, 0.04), ("HAPI %", 6.67, 4.58), ("CLABSI", 1.5, 3.3), ("CAUTI", 0.0, 0.4), ("VAP", 1.2, 2.1)]
 cir_fix = [("Restraints", 0.45, 0.9), ("VAE Rate", 1.6, 3.4), ("Turnover", 2.5, 3.0), ("Nurse Hr", 14.5, 12.0), ("RN Edu", 85.0, 70.5), ("C-Diff", 0.0, 0.1)]
 
@@ -78,11 +78,11 @@ def create_gauge(v, mx, s):
     fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=10, b=0, l=10, r=10), height=130)
     return fig
 
-# --- العرض ---
+# --- العرض الرئيسي ---
 st.markdown(f"<h1 style='text-align: center; color: #00d4ff; font-size: 50px; font-weight:900; letter-spacing: 3px;'>ICU DASHBOARD</h1>", unsafe_allow_html=True)
 st.markdown(f"<p style='text-align: center; color: #444; font-weight: bold; font-size: 20px; margin-bottom: 30px;'>PERIOD: 1Q 2026</p>", unsafe_allow_html=True)
 
-# 4. الجزء العلوي (مربعات ودواير) - ثابت تماماً
+# 4. الجزء العلوي الثابت (مربعات ودواير العملاقة محيمة)
 cols1 = st.columns(6)
 for i, (name, val, bm) in enumerate(sq_fix):
     color = "#00ffaa" if val <= bm else "#ff4b4b"
@@ -99,7 +99,7 @@ for i, (name, val, bm) in enumerate(cir_fix):
 
 st.markdown("<hr style='border-color:#111; margin:60px 0;'>", unsafe_allow_html=True)
 
-# 5. الجزء السفلي (التركيز على Performance Analytics بار تشارت)
+# 5. الجزء السفلي (الأجهزة الثابتة + البار تشارت الموسيقي الجديد)
 c1, c2 = st.columns([2.2, 1.8])
 
 with c1:
@@ -113,47 +113,70 @@ with c1:
             st.markdown(f'<div class="gauge-label-bottom">{n}</div>', unsafe_allow_html=True)
 
 with c2:
-    # --- ركز هنا: البار تشارت المطور ---
-    st.markdown('<div class="side-header" style="margin-left:20px;">PERFORMANCE ANALYTICS</div>', unsafe_allow_html=True)
+    # === ركز هنا: البار تشارت الموسيقي (السلم الموسيقي) ===
+    st.markdown('<div class="side-header" style="margin-left:20px;">PERFORMANCE Staff Chart</div>', unsafe_allow_html=True)
+    
+    # تحضير الألوان والبيانات
+    x_labs = [n[0] for n in sq_fix]
+    y_vals = cur['bar_actual']
+    y_bms = [n[2] for n in sq_fix]
+    colors = ['#00d4ff' if y <= b else '#ff4b4b' for y, b in zip(y_vals, y_bms)]
+    max_y = max(max(y_vals), max(y_bms)) * 1.2
     
     fig = go.Figure()
-    
-    # الأعمدة الفعلية (Actual) بلون السين الرائع
+
+    # 1. إضافة خطوط السلم الموسيقي الـ 5 الأفقية
+    for i in range(1, 6):
+        fig.add_shape(type="line", x0=-0.5, x1=5.5, y0=(max_y/6)*i, y1=(max_y/6)*i, line=dict(color="#222", width=1))
+
+    # 2. إضافة رمز مفتاح صول (G-Clef) في البداية كخلفية جمالية
+    fig.add_annotation(x=-0.4, y=(max_y/6)*3, text="𝄞", showarrow=False, font=dict(size=60, color="#111"), align="left")
+
+    # 3. إضافة الـ Benchmark كخطوط هدف متقطعة رفيعة
+    for i, bm in enumerate(y_bms):
+        fig.add_shape(type="line", x0=i-0.3, x1=i+0.3, y0=bm, y1=bm, line=dict(color="#333", width=2, dash="dash"))
+
+    # 4. إضافة درجات السلم (الأعمدة الرفيعة الصاعدة)
     fig.add_trace(go.Bar(
-        x=[n[0] for n in sq_fix], 
-        y=cur['bar_actual'], 
-        name="Actual Performance", 
+        x=x_labs, 
+        y=y_vals, 
         marker_color='#00d4ff',
-        text=cur['bar_actual'],
-        textposition='outside',
-        textfont=dict(color='#ffffff', size=12)
+        marker_line=dict(width=0), # بدون حدود
+        width=0.03, # أعمدة رفيعة جداً كدرجات سلم
+        showlegend=False
     ))
     
-    # أعمدة الـ Benchmark بلون رمادي داكن للمقارنة
-    fig.add_trace(go.Bar(
-        x=[n[0] for n in sq_fix], 
-        y=[n[2] for n in sq_fix], 
-        name="Unit Benchmark", 
-        marker_color='#1a1a1a',
-        marker_line=dict(color='#444', width=1)
+    # 5. إضافة النوتات الموسيقية الدائرية (Musical Notes) كعلامات أداء
+    fig.add_trace(go.Scatter(
+        x=x_labs,
+        y=y_vals,
+        mode='markers+text',
+        marker=dict(
+            size=28, # حجم النوتة
+            color=colors, # Cyan لو آمن، Red لو خطر
+            symbol='circle',
+            line=dict(color='#000', width=2)
+        ),
+        text=y_vals,
+        textfont=dict(color='#000', size=11, family='Arial Black'),
+        textposition='midcenter',
+        showlegend=False
     ))
     
+    # تعديل التنسيق لملائمة السلم الموسيقي
     fig.update_layout(
         height=450,
-        barmode='group',
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
-        margin=dict(t=20, b=20, l=0, r=0),
-        legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center", font=dict(color="#aaaaaa")),
-        xaxis=dict(tickfont=dict(color='#888', size=12), showgrid=False),
-        yaxis=dict(tickfont=dict(color='#888'), showgrid=True, gridcolor='#111', zeroline=False),
-        bargap=0.2,
-        bargroupgap=0.1
+        margin=dict(t=0, b=20, l=0, r=0),
+        xaxis=dict(tickfont=dict(color='#888', size=12), showgrid=False, range=[-0.6, 5.6]),
+        yaxis=dict(showgrid=False, showticklabels=False, range=[0, max_y]), # إخفاء الأرقام لتعزيز شكل السلم
+        bargap=0.8
     )
     
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
-# حلقة التحديث (15 ثانية)
+# حلقة التحديث المعتمدة (15 ثانية)
 time.sleep(15)
 st.session_state.week_index += 1
 st.rerun()
