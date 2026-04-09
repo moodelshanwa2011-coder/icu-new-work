@@ -10,7 +10,7 @@ st.markdown("""
     <style>
     [data-testid="stAppViewContainer"] { background-color: #000000; padding: 10px 20px; }
     
-    .section-title { color: #888; font-size: 14px; font-weight: bold; text-align: left; margin-bottom: 10px; letter-spacing: 1.5px; text-transform: uppercase; }
+    .section-title { color: #666; font-size: 14px; font-weight: bold; text-align: left; margin-bottom: 10px; letter-spacing: 1.5px; text-transform: uppercase; }
 
     .dev-box {
         background-color: #0a0a0a;
@@ -24,11 +24,11 @@ st.markdown("""
     .dev-label { color: #aaaaaa; font-size: 14px; font-weight: bold; }
     .dev-value { color: #ffffff; font-size: 32px; font-weight: 900; }
     
-    .stay-box { border-left: 5px solid #00CC96; background-color: #0d0d0d; }
-    .stay-value { color: #00CC96; font-size: 45px; }
+    .stay-box { border-left: 5px solid #00d4ff; background-color: #0d0d0d; box-shadow: 0 0 15px rgba(0, 212, 255, 0.2); }
+    .stay-value { color: #00d4ff; font-size: 45px; }
 
     .gauge-header { color: #ffffff; font-size: 18px; font-weight: bold; text-align: center; margin-bottom: -15px; }
-    .bench-label { color: #666; font-size: 14px; font-weight: bold; text-align: center; }
+    .bench-label { color: #444; font-size: 14px; font-weight: bold; text-align: center; }
 
     hr { border: 0.1px solid #222; margin: 30px 0; }
     #stProgress { display: none; }
@@ -60,10 +60,10 @@ d = data_cycle[st.session_state.step % len(data_cycle)]
 
 # العنوان
 st.markdown(f"<h1 style='text-align: center; color: white;'>ICU COMMAND CENTER | {d['period']}</h1>", unsafe_allow_html=True)
-st.markdown("<br>", unsafe_allow_html=True)
 
 # 4. الـ KPIs (Gauges)
 def draw_smart_gauge(label, val, target, is_perc=False, is_edu=False):
+    # منطق ألوان إشارات المرور (أخضر للأمان، أحمر للخطر)
     color = "#00CC96" if (val <= target if not is_edu else val >= target) else "#FF4B4B"
     st.markdown(f'<div class="gauge-header">{label}</div>', unsafe_allow_html=True)
     fig = go.Figure(go.Indicator(
@@ -93,7 +93,7 @@ with cols2[3]: draw_smart_gauge("VAE/VAP", d['vae'], d['vae_m'])
 
 st.markdown("<hr>", unsafe_allow_html=True)
 
-# 5. الجزء السفلي: الأجهزة (يسار) والبار تشارت (يمين)
+# 5. الجزء السفلي: الأجهزة والبار
 col_left, col_right = st.columns([1, 2.8])
 
 with col_left:
@@ -109,20 +109,20 @@ with col_left:
     dev_card("Total Stay", d['stay'], is_stay=True)
 
 with col_right:
-    st.markdown('<div class="section-title">KPI PERFORMANCE ANALYSIS</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">KPI PERFORMANCE ANALYSIS (UNIT vs BENCH)</div>', unsafe_allow_html=True)
     labels = ['Falls', 'Injury', 'Restraint', 'CLABSI', 'CAUTI', 'VAE']
     
     fig_bar = go.Figure()
-    # أعمدة المستشفى الحالي (Neon Green الآن)
+    # أداء الوحدة: أزرق سماوي (يعبر عن التكنولوجيا والدقة)
     fig_bar.add_trace(go.Bar(
         name='Current Unit', x=labels, y=[d['falls'], d['injury'], d['restraint'], d['clabsi'], d['cauti'], d['vae']],
-        marker=dict(color='#00FF00', line=dict(color='#ffffff', width=1)), # Green
+        marker=dict(color='#00D4FF', line=dict(color='#ffffff', width=0.5)),
         text=[d['falls'], d['injury'], d['restraint'], d['clabsi'], d['cauti'], d['vae']], textposition='outside'
     ))
-    # أعمدة الـ Benchmark (Neon Pink الآن)
+    # الهدف (Benchmark): رمادي معدني (يعبر عن القاعدة الثابتة)
     fig_bar.add_trace(go.Bar(
         name='NDNQI Benchmark', x=labels, y=[d['falls_m'], d['injury_m'], d['restraint_m'], d['clabsi_m'], d['cauti_m'], d['vae_m']],
-        marker=dict(color='#FF007F', line=dict(color='#ffffff', width=1)), # Pink
+        marker=dict(color='#E0E0E0', line=dict(color='#ffffff', width=0.5)),
         text=[d['falls_m'], d['injury_m'], d['restraint_m'], d['clabsi_m'], d['cauti_m'], d['vae_m']], textposition='outside'
     ))
     
