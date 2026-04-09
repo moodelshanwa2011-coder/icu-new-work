@@ -3,9 +3,9 @@ import plotly.graph_objects as go
 import time
 
 # 1. إعدادات الصفحة
-st.set_page_config(page_title="ICU Performance Hub", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="ICU Executive Dashboard", layout="wide", initial_sidebar_state="collapsed")
 
-# 2. CSS المتطور: تأثير الموجة النيونية والأسماء الرمادية (بدون شرط مائلة)
+# 2. CSS المتطور جداً
 st.markdown("""
     <style>
     [data-testid="stAppViewContainer"] { background-color: #000000; color: #ffffff; }
@@ -44,38 +44,49 @@ st.markdown("""
     }
 
     .z-layer { position: relative; z-index: 10; }
-    
-    /* مسميات رمادية معدنية */
-    .gray-label { color: #aaaaaa; font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+    .gray-label { color: #aaaaaa; font-size: 14px; font-weight: 800; text-transform: uppercase; }
     .cyan-val { color: #00d4ff; font-size: 35px; font-weight: 900; }
-    .bm-val { color: #444444; font-size: 11px; font-weight: bold; }
-
-    /* تمييز Unit Census الكرت الذهبي */
-    .census-card {
-        background: linear-gradient(145deg, #0f0f0f, #050505);
-        border-left: 6px solid #FFD700; border-radius: 10px; padding: 20px; text-align: center;
-    }
-    .census-val { color: #FFD700; font-size: 55px; font-weight: 900; line-height: 1; margin: 10px 0; }
     
-    /* العناوين الجانبية (بدون شرط مائلة) */
-    .side-title { color: #aaaaaa; font-size: 18px; font-weight: bold; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
+    /* كرت التعداد الذهبي */
+    .census-card {
+        background: linear-gradient(145deg, #111111, #000000);
+        border-bottom: 4px solid #FFD700; border-radius: 20px; padding: 25px; text-align: center;
+        margin-bottom: 25px; box-shadow: 0 10px 30px rgba(255, 215, 0, 0.05);
+    }
+    .census-val { color: #FFD700; font-size: 65px; font-weight: 900; line-height: 1; }
 
-    .dev-card { background: #0a0a0a; border-left: 3px solid #00d4ff; border-radius: 4px; padding: 12px; margin-bottom: 8px; }
+    /* تصميم نصف الدائرة للأجهزة */
+    .semi-circle-card {
+        background: linear-gradient(90deg, #0a0a0a 0%, #151515 100%);
+        border-radius: 0 50px 50px 0; /* شكل نصف دائري من اليمين */
+        border-left: 5px solid #00d4ff;
+        padding: 18px 25px;
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: 0.3s;
+    }
+    .semi-circle-card:hover { transform: translateX(10px); background: #1a1a1a; }
+    .dev-text { color: #ffffff; font-size: 18px; font-weight: 700; text-transform: uppercase; }
+    .dev-num { color: #00d4ff; font-size: 28px; font-weight: 900; }
+
+    .side-title { color: #00d4ff; font-size: 28px; font-weight: 900; margin-bottom: 25px; text-transform: uppercase; }
     </style>
     """, unsafe_allow_html=True)
 
 if 'step' not in st.session_state: st.session_state.step = 0
 
-# 3. قاعدة البيانات الكاملة (12 KPIs + Devices)
+# 3. البيانات المستقرة
 data_source = [
     {
-        "period": "3Q 2025 (Cycle A)",
+        "period": "CURRENT CYCLE: A-2026",
         "squares": [("Falls", 0.0, 0.18), ("Injuries", 0.0, 0.04), ("HAPI %", 6.67, 4.58), ("CLABSI Rate", 1.50, 3.38), ("CAUTI Rate", 0.0, 0.44), ("VAP Rate", 1.2, 2.1)],
         "circles": [("Restraints", 0.45, 0.90), ("VAE Rate", 1.6, 3.4), ("Turnover", 2.5, 3.0), ("Nursing Hr", 14.5, 12.0), ("RN Education", 85.0, 70.5), ("C-Diff", 0.0, 0.12)],
         "census": 32, "occupancy": "88.9%", "ett": 14, "foley": 18, "cvc": 9, "stay": 3.4
     },
     {
-        "period": "2Q 2024 (Cycle B)",
+        "period": "PREVIOUS CYCLE: B-2025",
         "squares": [("Falls", 0.24, 0.06), ("Injuries", 0.15, 0.01), ("HAPI %", 14.2, 6.5), ("CLABSI Rate", 1.28, 2.67), ("CAUTI Rate", 0.7, 0.99), ("VAP Rate", 2.1, 2.1)],
         "circles": [("Restraints", 0.70, 0.96), ("VAE Rate", 2.17, 3.4), ("Turnover", 3.1, 3.0), ("Nursing Hr", 12.8, 12.0), ("RN Education", 82.9, 70.5), ("C-Diff", 0.1, 0.12)],
         "census": 30, "occupancy": "83.3%", "ett": 11, "foley": 15, "cvc": 10, "stay": 2.8
@@ -83,12 +94,11 @@ data_source = [
 ]
 d = data_source[st.session_state.step % 2]
 
-# العنوان الرئيسي الفخم (بدون شرط مائلة)
-st.markdown(f"<h1 style='text-align: center; color: #00d4ff; font-size: 45px; margin-bottom:0; letter-spacing:2px; font-weight:900;'>ICU STRATEGIC COMMAND HUB</h1>", unsafe_allow_html=True)
-st.markdown(f"<p style='text-align: center; color: #555; font-weight: bold; font-size: 16px; margin-top:5px;'>REPORTING PERIOD: {d['period']}</p>", unsafe_allow_html=True)
-st.markdown("<br>", unsafe_allow_html=True)
+# الهيدر
+st.markdown(f"<h1 style='text-align: center; color: #00d4ff; font-size: 48px; font-weight: 900; margin-bottom:0;'>ICU STRATEGIC COMMAND</h1>", unsafe_allow_html=True)
+st.markdown(f"<p style='text-align: center; color: #444; font-weight: bold; font-size: 18px;'>{d['period']}</p>", unsafe_allow_html=True)
 
-# 4. المربعات المتموجة (الصف العلوي)
+# 4. الـ 12 KPI (نفس التوزيع الناجح)
 cols1 = st.columns(6)
 for i, (lab, val, bm) in enumerate(d['squares']):
     color = "#00ffaa" if val <= bm else "#ff4b4b"
@@ -96,10 +106,9 @@ for i, (lab, val, bm) in enumerate(d['squares']):
         st.markdown(f"""<div class="wave-container"><div class="z-layer">
             <div class="gray-label">{lab}</div>
             <div class="cyan-val" style="color:{color}">{val}</div>
-            <div class="bm-val">Benchmark: {bm}</div>
+            <div class="bm-val">Target: {bm}</div>
         </div></div>""", unsafe_allow_html=True)
 
-# 5. الدوائر المتموجة (الصف السفلي)
 cols2 = st.columns(6)
 for i, (lab, val, bm) in enumerate(d['circles']):
     is_rev = any(x in lab for x in ["Hr", "Education"])
@@ -107,76 +116,79 @@ for i, (lab, val, bm) in enumerate(d['circles']):
     with cols2[i]:
         st.markdown(f"""<div class="wave-circle-outer"><div class="z-layer">
             <div class="cyan-val" style="font-size: 26px; color:{color}">{val}</div>
-            <div class="bm-val" style="color:#888;">Benchmark: {bm}</div>
+            <div class="bm-val" style="color:#888;">BM: {bm}</div>
         </div></div>
-        <div class="gray-label" style="text-align:center; margin-top:10px; font-size:12px; font-weight:bold;">{lab}</div>""", unsafe_allow_html=True)
+        <div class="gray-label" style="text-align:center; margin-top:10px; font-size:12px;">{lab}</div>""", unsafe_allow_html=True)
 
-st.markdown("<hr style='border-color:#111; margin:40px 0;'>", unsafe_allow_html=True)
+st.markdown("<br><hr style='border-color:#111;'><br>", unsafe_allow_html=True)
 
-# 6. الجزء السفلي (البيانات الجانبية والرسم البياني)
-c1, c2 = st.columns([1.3, 2.5])
+# 5. الجزء السفلي: الأجهزة والبار المطور
+c1, c2 = st.columns([1.4, 2.4])
 
 with c1:
-    # العنوان الجانبي (بدون شرط مائلة وبحجم كبير)
-    st.markdown(f'<div class="side-title" style="font-size:30px; font-weight:bold; color:#00d4ff; letter-spacing:2px;">36 CAPACITY STATUS</div>', unsafe_allow_html=True)
+    st.markdown('<div class="side-title">36 CAPACITY</div>', unsafe_allow_html=True)
     
-    # كارت Unit Census الذهبي الكبير
+    # كارت التعداد الفخم
     st.markdown(f"""<div class="census-card">
-        <div class="gray-label" style="color:#FFD700; font-size:12px;">Unit Census</div>
+        <div class="gray-label" style="color:#FFD700;">Unit Census</div>
         <div class="census-val">{d['census']}</div>
-        <div style="color:#FFD700; font-size:14px; font-weight:bold;">Occupancy Rate: {d['occupancy']}</div>
+        <div style="color:#FFD700; font-weight:bold;">OCCUPANCY: {d['occupancy']}</div>
     </div>""", unsafe_allow_html=True)
     
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    # مسميات الأجهزة الطبية الدقيقة (النمط الطبي)
-    device_data = [
+    # كروت الأجهزة بنصف الدائرة والخط الكبير
+    devices = [
         ("Pt with ETT", d['ett']), 
         ("Pt with Foley", d['foley']), 
         ("Pt with CVC", d['cvc']),
-        ("Average Length of Stay", d['stay'])
+        ("Avg Stay", d['stay'])
     ]
-    for l, v in device_data:
-        st.markdown(f"""<div class="dev-card">
-            <span style="float:right; color:#00d4ff; font-weight:900; font-size:22px;">{v}</span>
-            <span class="gray-label" style="font-size:11px;">{l}</span>
-        </div>""", unsafe_allow_html=True)
+    for name, value in devices:
+        st.markdown(f"""
+            <div class="semi-circle-card">
+                <span class="dev-text">{name}</span>
+                <span class="dev-num">{value}</span>
+            </div>
+        """, unsafe_allow_html=True)
 
 with c2:
-    st.markdown(f'<div class="side-title" style="margin-left:20px; font-size:20px; color:#aaaaaa;">QUARTERLY PERFORMANCE TRENDS</div>', unsafe_allow_html=True)
+    st.markdown('<div class="side-title" style="margin-left:20px;">Performance Analytics</div>', unsafe_allow_html=True)
     
     labels = [s[0] for s in d['squares']]
     vals = [s[1] for s in d['squares']]
     bms = [s[2] for s in d['squares']]
 
-    # تعديل البار تشارت ليكون أوضح ومضبوطاً
+    # الرسم البياني الاحترافي المطور
     fig = go.Figure()
-    # أعمدة الوحدة باللون السيان
+    
+    # أعمدة الوحدة (نيون سيان مع حواف مستديرة)
     fig.add_trace(go.Bar(
-        x=labels, y=vals, name="Unit Actual", 
-        marker=dict(color='#00d4ff', line=dict(color='#00ffff', width=1)), 
+        x=labels, y=vals, name="Unit Performance",
+        marker=dict(color='#00d4ff', line=dict(color='#00ffff', width=1)),
         text=vals, textposition='outside',
-        hoverinfo='text'
+        textfont=dict(size=14, color='#ffffff', family="Arial Black"), # خط واضح جداً للأرقام
     ))
-    # أعمدة البنش مارك باللون الرمادي
+    
+    # أعمدة الـ Benchmark (تصميم زجاجي داكن)
     fig.add_trace(go.Bar(
-        x=labels, y=bms, name="NDNQI Benchmark", 
-        marker=dict(color='#1a1a1a', line=dict(color='#333', width=1)), 
+        x=labels, y=bms, name="Benchmark",
+        marker=dict(color='rgba(60, 60, 60, 0.4)', line=dict(color='#444', width=1)),
         text=bms, textposition='outside',
-        hoverinfo='text'
+        textfont=dict(size=12, color='#888'),
     ))
 
     fig.update_layout(
-        height=420, barmode='group', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='#aaaaaa', size=13), margin=dict(t=50, b=0),
-        legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center", font=dict(size=14)),
-        xaxis=dict(showgrid=False),
-        yaxis=dict(showgrid=True, gridcolor='#111', title="Rate / Percentage")
+        height=450, barmode='group',
+        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+        margin=dict(t=40, b=0, l=0, r=0),
+        legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center", font=dict(size=14, color="#fff")),
+        xaxis=dict(tickfont=dict(size=12, color="#aaa"), showgrid=False),
+        yaxis=dict(showgrid=True, gridcolor='#151515', tickfont=dict(color="#444")),
+        bargap=0.2, bargroupgap=0.1
     )
-    fig.update_yaxes(zeroline=False)
+    
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
-# التحديث التلقائي كل 15 ثانية بسلاسة
+# التحديث التلقائي
 time.sleep(15)
 st.session_state.step += 1
 st.rerun()
