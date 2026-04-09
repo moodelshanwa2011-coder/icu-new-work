@@ -1,7 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="ICU Mixed Analytics | SGH", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="ICU Monitor | SGH Riyadh", layout="wide", initial_sidebar_state="collapsed")
 
 dashboard_html = """
 <!DOCTYPE html>
@@ -14,9 +14,7 @@ dashboard_html = """
             --bg: #01040a;
             --panel-bg: rgba(10, 25, 47, 0.95);
             --neon-blue: #00f2ff;
-            --neon-green: #39ff14;
-            --neon-red: #ff0044;
-            --neon-yellow: #fefe33;
+            --neon-purple: #bc13fe;
             --grid-line: rgba(0, 242, 255, 0.05);
         }
         
@@ -30,112 +28,145 @@ dashboard_html = """
 
         .header {
             display: flex; justify-content: space-between; align-items: center;
-            background: var(--panel-bg); padding: 8px 25px; border-radius: 8px;
+            background: var(--panel-bg); padding: 8px 30px; border-radius: 10px;
             border: 2px solid var(--neon-blue); margin-bottom: 15px;
             box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
         }
 
+        /* المربعات العلوية للأجهزة - حجم صغير جداً */
         .mini-grid {
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;
+            display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 15px;
         }
 
         .mini-box {
             background: rgba(0, 242, 255, 0.03); border: 1px solid rgba(0, 242, 255, 0.2);
-            border-radius: 6px; padding: 12px; text-align: center;
+            border-radius: 8px; padding: 8px; text-align: center;
         }
 
-        .mini-val { font-size: 1.8rem; font-weight: 900; color: var(--neon-blue); display: block; }
-        .mini-lbl { font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; }
+        .mini-val { font-size: 1.6rem; font-weight: 900; color: var(--neon-blue); display: block; line-height: 1.2; }
+        .mini-lbl { font-size: 0.6rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; }
+
+        .main-container {
+            display: grid; grid-template-columns: 2.2fr 1.8fr; gap: 15px; height: 75vh;
+        }
 
         .panel {
             background: var(--panel-bg); border: 1.5px solid var(--neon-blue);
-            border-radius: 12px; padding: 20px; height: 65vh;
+            border-radius: 12px; padding: 15px; display: flex; flex-direction: column;
         }
 
         .panel-title {
-            font-size: 1rem; font-weight: 900; color: var(--neon-blue);
-            text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px;
-            border-left: 5px solid var(--neon-blue); padding-left: 12px;
+            font-size: 0.85rem; font-weight: 900; color: var(--neon-blue);
+            text-transform: uppercase; letter-spacing: 2px; margin-bottom: 15px;
+            border-left: 5px solid var(--neon-blue); padding-left: 10px;
+        }
+
+        #dateLabel {
+            background: var(--neon-blue); color: #000; padding: 5px 20px; 
+            border-radius: 4px; font-weight: 900; font-size: 1.1rem;
         }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <div style="font-size: 1.4rem; font-weight: 900; letter-spacing: 2px;">ICU <span style="color:var(--neon-blue)">MIXED DATA</span> DASHBOARD</div>
-    <div style="background: var(--neon-blue); color: #000; padding: 5px 15px; border-radius: 4px; font-weight: 900;">APRIL 2026 MONITOR</div>
+    <div style="font-size: 1.5rem; font-weight: 900; letter-spacing: 2px;">ICU <span style="color:var(--neon-blue)">PERFORMANCE</span> MONITOR</div>
+    <div id="dateLabel">...</div>
 </div>
 
-<div class="mini-grid">
-    <div class="mini-box"><span class="mini-val">27.3</span><span class="mini-lbl">Avg. Daily Census</span></div>
-    <div class="mini-box"><span class="mini-val">83.8%</span><span class="mini-lbl">RN BSN Education</span></div>
-    <div class="mini-box"><span class="mini-val">1.59</span><span class="mini-lbl">Fall Rate (1Q25)</span></div>
-    <div class="mini-box" style="border-color: var(--neon-red);"><span class="mini-val" style="color:var(--neon-red)">7</span><span class="mini-lbl">Current Deaths (Apr 25)</span></div>
-</div>
+<div class="mini-grid" id="deviceStats"></div>
 
-<div class="panel">
-    <div class="panel-title">Integrated KPI Analytics (Devices vs Clinical vs Mortality)</div>
-    <div style="height: 90%;">
-        <canvas id="mixedChart"></canvas>
+<div class="main-container">
+    <div class="panel">
+        <div class="panel-title">Medical Device Census (Weekly Trend)</div>
+        <div style="flex-grow: 1;">
+            <canvas id="deviceChart"></canvas>
+        </div>
+    </div>
+    
+    <div class="panel">
+        <div class="panel-title">Clinical Quality Indicators (NDNQI - PDF)</div>
+        <div style="flex-grow: 1;">
+            <canvas id="pdfLineChart"></canvas>
+        </div>
+        <div style="margin-top:10px; display: flex; justify-content: space-around; font-size: 0.7rem; color: #94a3b8;">
+            <span>Falls (1Q25): 1.59</span>
+            <span>BSN Education: 83.8%</span>
+        </div>
     </div>
 </div>
 
 <script>
-    const ctx = document.getElementById('mixedChart').getContext('2d');
-    
-    // دمج البيانات من المصادر الثلاثة:
-    // 1. أجهزة أبريل (متوسط يومي)
-    // 2. الوفيات (من صورة الجدول) لشهر أبريل
-    // 3. العدوى (من ملف PDF) لآخر ربع
-    
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: [
-                'Foley Catheter (Apr 26)', 
-                'Total Ventilators (Apr 26)', 
-                'Deaths (Apr 2024)', 
-                'Deaths (Apr 2025)', 
-                'CLABSI Rate (1Q25)', 
-                'CAUTI Rate (1Q25)'
-            ],
-            datasets: [{
-                label: 'Metric Value',
-                data: [14.6, 11.5, 5, 7, 1.26, 0.43], // أرقام مستخرجة من صورك وملفك
-                backgroundColor: [
-                    '#00f2ff', // Foley - Blue
-                    '#39ff14', // Vent - Green
-                    'rgba(255, 0, 68, 0.5)', // Death 24 - Light Red
-                    '#ff0044', // Death 25 - Strong Red
-                    '#fefe33', // CLABSI - Yellow
-                    '#bc13fe'  // CAUTI - Purple
-                ],
-                borderColor: '#fff',
-                borderWidth: 1,
-                borderRadius: 8
-            }]
-        },
-        options: {
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: { backgroundColor: '#0a192f', titleColor: '#00f2ff' }
-            },
-            scales: {
-                y: { 
-                    beginAtZero: true,
-                    grid: { color: 'rgba(255,255,255,0.05)' },
-                    ticks: { color: '#94a3b8' }
+    // بيانات الأجهزة (الشغل الجديد)
+    const deviceWeekly = [
+        {t: "APRIL - Week 1", census: 40, foley: 25, central: 14, ett: 10, tt: 3, iv: 36},
+        {t: "APRIL - Week 2", census: 38, foley: 22, central: 12, ett: 9, tt: 3, iv: 34},
+        {t: "APRIL - Week 3", census: 41, foley: 26, central: 15, ett: 11, tt: 4, iv: 37}
+    ];
+
+    // بيانات الـ PDF (معدلات العدوى ربع سنوية)
+    const pdfData = {
+        labels: ["4Q23", "1Q24", "2Q24", "3Q24", "1Q25"],
+        clabsi: [1.38, 1.28, 1.56, 1.20, 1.26],
+        cauti: [0, 0.70, 0.67, 0.40, 0.43]
+    };
+
+    let idx = 0;
+    let devChart, lineChart;
+
+    function update() {
+        const d = deviceWeekly[idx];
+        document.getElementById('dateLabel').innerText = d.t;
+
+        // تحديث المربعات (أجهزة فقط)
+        document.getElementById('deviceStats').innerHTML = `
+            <div class="mini-box"><span class="mini-val">${d.census}</span><span class="mini-lbl">Census</span></div>
+            <div class="mini-box"><span class="mini-val">${d.foley}</span><span class="mini-lbl">Foley</span></div>
+            <div class="mini-box"><span class="mini-val">${d.central}</span><span class="mini-lbl">C-Line</span></div>
+            <div class="mini-box"><span class="mini-val">${d.ett}</span><span class="mini-lbl">ETT</span></div>
+            <div class="mini-box"><span class="mini-val">${d.tt}</span><span class="mini-lbl">T.T</span></div>
+            <div class="mini-box"><span class="mini-val">${d.iv}</span><span class="mini-lbl">IV Access</span></div>
+        `;
+
+        // تحديث البار تشارت للأجهزة (بدون ميكس)
+        const deviceValues = [d.foley, d.central, d.ett, d.tt, d.iv];
+        if(!devChart) {
+            devChart = new Chart(document.getElementById('deviceChart'), {
+                type: 'bar',
+                data: {
+                    labels: ["Foley", "Central", "ETT", "T.T", "IV"],
+                    datasets: [{ data: deviceValues, backgroundColor: '#00f2ff', barThickness: 45 }]
                 },
-                x: {
-                    ticks: { color: '#fff', font: { size: 11, weight: 'bold' } }
-                }
-            }
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#64748b' } }, x: { ticks: { color: '#fff', font: { weight: 'bold' } } } } }
+            });
+        } else {
+            devChart.data.datasets[0].data = deviceValues;
+            devChart.update();
         }
-    });
+
+        // تحديث تشارت الـ PDF (خطي لبيانات العدوى)
+        if(!lineChart) {
+            lineChart = new Chart(document.getElementById('pdfLineChart'), {
+                type: 'line',
+                data: {
+                    labels: pdfData.labels,
+                    datasets: [
+                        { label: 'CLABSI', data: pdfData.clabsi, borderColor: '#00f2ff', tension: 0.4, fill: true, backgroundColor: 'rgba(0, 242, 255, 0.1)' },
+                        { label: 'CAUTI', data: pdfData.cauti, borderColor: '#bc13fe', tension: 0.4 }
+                    ]
+                },
+                options: { maintainAspectRatio: false, plugins: { legend: { labels: { color: '#fff' } } }, scales: { y: { ticks: { color: '#64748b' } }, x: { ticks: { color: '#64748b' } } } }
+            });
+        }
+
+        idx = (idx + 1) % deviceWeekly.length;
+    }
+
+    update();
+    setInterval(update, 15000);
 </script>
 </body>
 </html>
 """
 
-components.html(dashboard_html, height=850, scrolling=False)
+components.html(dashboard_html, height=900, scrolling=False)
