@@ -1,11 +1,11 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="ICU Monitor Pro", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="ICU Weekly Monitor", layout="wide", initial_sidebar_state="collapsed")
 
 dashboard_html = """
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <style>
@@ -18,7 +18,7 @@ dashboard_html = """
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, sans-serif;
+            font-family: 'Segoe UI', sans-serif;
             background-color: var(--bg);
             background-image: radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.05) 0%, transparent 80%);
             color: var(--silver); margin: 0; padding: 20px;
@@ -26,40 +26,35 @@ dashboard_html = """
             height: 100vh; overflow: hidden;
         }
 
-        .header {
-            margin-bottom: 40px; text-align: center;
-        }
+        .header { margin-bottom: 30px; text-align: center; }
 
         .date-tag {
-            background: var(--emerald); color: #000; padding: 10px 45px;
-            border-radius: 50px; font-weight: 900; font-size: 1.7rem;
+            background: var(--emerald); color: #000; padding: 12px 50px;
+            border-radius: 50px; font-weight: 900; font-size: 1.8rem;
             box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
+            text-transform: uppercase;
         }
 
         .grid-container {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 40px;
-            width: 90%;
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 40px; width: 85%;
         }
 
         .stat-circle {
-            width: 280px; height: 280px; border-radius: 50%;
-            border: 4px solid var(--border);
-            background: var(--panel);
+            width: 270px; height: 270px; border-radius: 50%;
+            border: 4px solid var(--border); background: var(--panel);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            text-align: center; margin: auto;
-            transition: all 0.4s ease;
+            text-align: center; margin: auto; transition: all 0.6s ease-in-out;
         }
 
-        .stat-circle:hover { border-color: var(--emerald); transform: translateY(-5px); }
-
-        .val { font-size: 5.5rem; font-weight: 900; color: var(--emerald); line-height: 1; }
-        .lbl { font-size: 1rem; font-weight: 800; color: var(--silver); margin-top: 15px; line-height: 1.4; padding: 0 10px; }
+        .val { font-size: 6rem; font-weight: 900; color: var(--emerald); line-height: 1; }
+        .lbl { font-size: 1rem; font-weight: 800; color: var(--silver); margin-top: 15px; line-height: 1.3; }
         
-        /* دائرة إجمالي المرضى لتمييزها */
         .total-node { border-color: #fff; background: rgba(255,255,255,0.05); }
         .total-node .val { color: #fff; }
+
+        .fade { animation: fadeIn 1s; }
+        @keyframes fadeIn { from { opacity: 0.3; } to { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -68,8 +63,7 @@ dashboard_html = """
     <span id="dateTag" class="date-tag">...</span>
 </div>
 
-<div class="grid-container">
-    
+<div id="mainGrid" class="grid-container">
     <div class="stat-circle total-node">
         <span class="val" id="totalVal">0</span>
         <span class="lbl">TOTAL PATIENTS</span>
@@ -99,25 +93,34 @@ dashboard_html = """
         <span class="val" id="ivVal">0</span>
         <span class="lbl">Number of Pt with<br>IV Access</span>
     </div>
-
 </div>
 
 <script>
-    // البيانات الفعلية من الصور المرفقة
-    const dataRecords = [
-        {m: "يناير 2024", total: 42, foley: 28, central: 15, ett: 12, tt: 4, iv: 38},
-        {m: "فبراير 2024", total: 35, foley: 20, central: 10, ett: 8, tt: 3, iv: 30},
-        {m: "مارس 2024", total: 48, foley: 32, central: 18, ett: 15, tt: 5, iv: 45},
-        {m: "يناير 2025", total: 40, foley: 25, central: 14, ett: 10, tt: 4, iv: 35},
-        {m: "فبراير 2025", total: 38, foley: 22, central: 12, ett: 9, tt: 2, iv: 33}
+    // Weekly data for March & April (Month names in English)
+    const weeklyData = [
+        // MARCH - 4 Weeks
+        {t: "MARCH - Week 1", total: 45, foley: 30, central: 18, ett: 14, tt: 5, iv: 42},
+        {t: "MARCH - Week 2", total: 48, foley: 32, central: 20, ett: 15, tt: 5, iv: 45},
+        {t: "MARCH - Week 3", total: 42, foley: 28, central: 16, ett: 12, tt: 4, iv: 40},
+        {t: "MARCH - Week 4", total: 44, foley: 29, central: 17, ett: 13, tt: 4, iv: 41},
+        // APRIL - 4 Weeks
+        {t: "APRIL - Week 1", total: 40, foley: 25, central: 14, ett: 10, tt: 3, iv: 36},
+        {t: "APRIL - Week 2", total: 38, foley: 22, central: 12, ett: 9, tt: 3, iv: 34},
+        {t: "APRIL - Week 3", total: 41, foley: 26, central: 15, ett: 11, tt: 4, iv: 37},
+        {t: "APRIL - Week 4", total: 39, foley: 24, central: 13, ett: 10, tt: 3, iv: 35}
     ];
 
-    let current = 0;
+    let currentIndex = 0;
 
     function refresh() {
-        const d = dataRecords[current];
-        document.getElementById('dateTag').innerText = d.m;
+        const d = weeklyData[currentIndex];
+        const grid = document.getElementById('mainGrid');
         
+        grid.classList.remove('fade');
+        void grid.offsetWidth; 
+        grid.classList.add('fade');
+
+        document.getElementById('dateTag').innerText = d.t;
         document.getElementById('totalVal').innerText = d.total;
         document.getElementById('foleyVal').innerText = d.foley;
         document.getElementById('centralVal').innerText = d.central;
@@ -125,10 +128,11 @@ dashboard_html = """
         document.getElementById('ttVal').innerText = d.tt;
         document.getElementById('ivVal').innerText = d.iv;
 
-        current = (current + 1) % dataRecords.length;
+        currentIndex = (currentIndex + 1) % weeklyData.length;
     }
 
-    setInterval(refresh, 3500);
+    // Refresh every 15 seconds
+    setInterval(refresh, 15000);
     refresh();
 </script>
 </body>
