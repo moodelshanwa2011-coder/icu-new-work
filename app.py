@@ -3,27 +3,29 @@ import plotly.graph_objects as go
 import time
 
 # 1. إعدادات الشاشة
-st.set_page_config(page_title="ICU Performance Wall", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="ICU Wall - Full View", layout="wide", initial_sidebar_state="collapsed")
 
-# 2. تصميم CSS (أسود ملكي)
+# 2. تصميم CSS (توسيع الحاويات وإخفاء الزوائد)
 st.markdown("""
     <style>
     [data-testid="stAppViewContainer"] { background-color: #000000; }
-    .device-card { background-color: #111; border: 1px solid #333; padding: 20px; border-radius: 15px; text-align: center; }
-    .device-label { color: #888; font-size: 16px; font-weight: bold; }
-    .device-value { color: #00d4ff; font-size: 40px; font-weight: 900; }
+    .gauge-container { margin-bottom: 50px; text-align: center; } /* توسيع المسافة الرأسية */
+    .bench-label { color: #555; font-size: 16px; margin-top: -10px; font-weight: bold; }
+    .device-card { background-color: #111; border: 1px solid #333; padding: 25px; border-radius: 15px; text-align: center; }
+    .device-label { color: #888; font-size: 18px; font-weight: bold; }
+    .device-value { color: #00d4ff; font-size: 45px; font-weight: 900; }
     </style>
     """, unsafe_allow_html=True)
 
 if 'step' not in st.session_state: st.session_state.step = 0
 
-# 3. الداتا الكاملة والمفصلة من الـ PDF (شاملة الـ Restraint والـ Injury Falls وغيره)
+# 3. الداتا الكاملة من الـ PDF والصور
 data_cycle = [
     {
         "period": "3Q 2025",
         "falls": 0.0, "falls_m": 0.18, 
-        "injury_falls": 0.0, "injury_m": 0.04,
-        "restraint": 0.45, "restraint_m": 0.90, # تم إضافة Restraint
+        "injury_m": 0.04, "injury": 0.0,
+        "restraint": 0.45, "restraint_m": 0.90,
         "hapi": 6.67, "hapi_m": 4.58, 
         "clabsi": 1.50, "clabsi_m": 3.38,
         "cauti": 0.0, "cauti_m": 0.44,
@@ -34,7 +36,7 @@ data_cycle = [
     {
         "period": "2Q 2024",
         "falls": 0.24, "falls_m": 0.06, 
-        "injury_falls": 0.24, "injury_m": 0.01,
+        "injury": 0.24, "injury_m": 0.01,
         "restraint": 0.70, "restraint_m": 0.96,
         "hapi": 14.29, "hapi_m": 6.54, 
         "clabsi": 1.28, "clabsi_m": 2.67,
@@ -48,52 +50,57 @@ data_cycle = [
 d = data_cycle[st.session_state.step % len(data_cycle)]
 
 # --- العنوان ---
-st.markdown(f"<h1 style='text-align: center; color: white; margin-bottom: 0;'>🏥 ICU FULL DATA MONITORING | {d['period']}</h1>", unsafe_allow_html=True)
+st.markdown(f"<h1 style='text-align: center; color: white;'>🏥 ICU FULL DATA MONITORING | {d['period']}</h1>", unsafe_allow_html=True)
+st.markdown("<br><br>", unsafe_allow_html=True)
 
-# دالة رسم النص دائرة (Gauge)
-def draw_gauge(label, val, target, color, is_perc=False):
+# دالة رسم النص دائرة (Gauge) مع تحسين المساحات
+def draw_gauge_with_bench(label, val, target, color, is_perc=False):
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=val,
-        number={'suffix': "%" if is_perc else "", 'font': {'size': 30, 'color': 'white'}},
-        title={'text': label, 'font': {'size': 14, 'color': 'white'}},
+        number={'suffix': "%" if is_perc else "", 'font': {'size': 35, 'color': 'white'}},
+        title={'text': label, 'font': {'size': 18, 'color': 'white'}},
         gauge={
-            'axis': {'range': [0, max(val, target)*1.3], 'tickcolor': "white"},
+            'axis': {'range': [0, max(val, target)*1.5], 'tickcolor': "white"},
             'bar': {'color': color},
             'bgcolor': "#111",
             'threshold': {'line': {'color': "white", 'width': 3}, 'thickness': 0.8, 'value': target}
         }
     ))
-    fig.update_layout(height=160, margin=dict(l=10, r=10, t=30, b=10), paper_bgcolor='rgba(0,0,0,0)')
-    return fig
+    fig.update_layout(height=200, margin=dict(l=30, r=30, t=50, b=0), paper_bgcolor='rgba(0,0,0,0)')
+    
+    # عرض الرسم وتحته الـ Benchmark مباشرة
+    st.plotly_chart(fig, use_container_width=True)
+    st.markdown(f'<div class="bench-label">Benchmark: {target}{"%" if is_perc else ""}</div>', unsafe_allow_html=True)
 
-# --- الصف الأول: المؤشرات الكبرى ---
-c1, c2, c3, c4 = st.columns(4)
-with c1: st.plotly_chart(draw_gauge("Total Falls", d['falls'], d['falls_m'], "#FF4B4B"), use_container_width=True)
-with c2: st.plotly_chart(draw_gauge("Injury Falls", d['injury_falls'], d['injury_m'], "#FF4B4B"), use_container_width=True)
-with c3: st.plotly_chart(draw_gauge("HAPI %", d['hapi'], d['hapi_m'], "#00d4ff", True), use_container_width=True)
-with c4: st.plotly_chart(draw_gauge("RN Education", d['edu'], d['edu_m'], "#00CC96", True), use_container_width=True)
+# --- توزيع المؤشرات (PDF) بمسافات واسعة ---
+col_set1 = st.columns(4)
+with col_set1[0]: draw_gauge_with_bench("Total Falls", d['falls'], d['falls_m'], "#FF4B4B")
+with col_set1[1]: draw_gauge_with_bench("Injury Falls", d['injury'], d['injury_m'], "#FF4B4B")
+with col_set1[2]: draw_gauge_with_bench("HAPI %", d['hapi'], d['hapi_m'], "#00d4ff", True)
+with col_set1[3]: draw_gauge_with_bench("RN Education", d['edu'], d['edu_m'], "#00CC96", True)
 
-# --- الصف الثاني: مؤشرات العدوى والقيود (Data Complete) ---
-c5, c6, c7, c8 = st.columns(4)
-with c5: st.plotly_chart(draw_gauge("Restraints", d['restraint'], d['restraint_m'], "#FF9F1C"), use_container_width=True)
-with c6: st.plotly_chart(draw_gauge("CLABSI Rate", d['clabsi'], d['clabsi_m'], "#FF9F1C"), use_container_width=True)
-with c7: st.plotly_chart(draw_gauge("CAUTI Rate", d['cauti'], d['cauti_m'], "#FF9F1C"), use_container_width=True)
-with c8: st.plotly_chart(draw_gauge("VAE/VAP", d['vae'], d['vae_m'], "#FF9F1C"), use_container_width=True)
+st.markdown("<br><br>", unsafe_allow_html=True) # مسافة إضافية بين الصفوف
 
-st.markdown("<br>", unsafe_allow_html=True)
+col_set2 = st.columns(4)
+with col_set2[0]: draw_gauge_with_bench("Restraints", d['restraint'], d['restraint_m'], "#FF9F1C")
+with col_set2[1]: draw_gauge_with_bench("CLABSI Rate", d['clabsi'], d['clabsi_m'], "#FF9F1C")
+with col_set2[2]: draw_gauge_with_bench("CAUTI Rate", d['cauti'], d['cauti_m'], "#FF9F1C")
+with col_set2[3]: draw_gauge_with_bench("VAE/VAP", d['vae'], d['vae_m'], "#FF9F1C")
 
-# --- الصف الثالث: الأجهزة (Devices) - أرقام واضحة ---
-st.markdown("<h3 style='color: white; text-align: center;'>MEDICAL DEVICE CENSUS (LIVE)</h3>", unsafe_allow_html=True)
-d1, d2, d3, d4 = st.columns(4)
+st.markdown("<br><br><br>", unsafe_allow_html=True)
+
+# --- الأجهزة (Images) ---
+st.markdown("<h3 style='color: white; text-align: center;'>MEDICAL DEVICE CENSUS</h3>", unsafe_allow_html=True)
+d_cols = st.columns(4)
 
 def device_box(label, value):
     st.markdown(f'<div class="device-card"><div class="device-label">{label}</div><div class="device-value">{value}</div></div>', unsafe_allow_html=True)
 
-with d1: device_box("Ventilators", d['vents'])
-with d2: device_box("Foley Catheter", d['foley'])
-with d3: device_box("Central Line", d['cvc'])
-with d4: device_box("Total Occupancy", d['stay'])
+with d_cols[0]: device_box("Ventilators", d['vents'])
+with d_cols[1]: device_box("Foley Catheter", d['foley'])
+with d_cols[2]: device_box("Central Line", d['cvc'])
+with d_cols[3]: device_box("Total Occupancy", d['stay'])
 
 # 4. التحديث التلقائي
 time.sleep(15)
