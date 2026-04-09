@@ -1,11 +1,12 @@
 import streamlit as st
 import plotly.graph_objects as go
+import numpy as np
 import time
 
 # 1. إعدادات الصفحة
 st.set_page_config(page_title="ICU Dashboard", layout="wide", initial_sidebar_state="collapsed")
 
-# 2. CSS المعتمد والمستقر
+# 2. CSS المعتمد (ثبات كامل)
 st.markdown("""
     <style>
     [data-testid="stAppViewContainer"] { background-color: #000000; color: #ffffff; }
@@ -49,7 +50,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 3. الداتا (مربوطة بالكامل)
+# 3. إدارة الداتا (يتم تحديث المربعات والبار معاً)
 if 'week_index' not in st.session_state: st.session_state.week_index = 0
 
 all_weeks = [
@@ -64,6 +65,7 @@ cur = all_weeks[st.session_state.week_index % len(all_weeks)]
 sq_info = [("Falls", 0.18), ("Injuries", 0.04), ("HAPI %", 4.58), ("CLABSI", 3.3), ("CAUTI", 0.4), ("VAP", 2.1)]
 cir_info = [("Restraints", 0.9), ("VAE Rate", 3.4), ("Turnover", 3.0), ("Nurse Hr", 12.0), ("RN Edu", 70.5), ("C-Diff", 0.1)]
 
+# دالة الجيدج
 def create_gauge(v, mx, s):
     fig = go.Figure(go.Indicator(
         mode = "gauge+number", value = v,
@@ -74,11 +76,10 @@ def create_gauge(v, mx, s):
     fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=10, b=0, l=10, r=10), height=130)
     return fig
 
-# --- الـ Header ---
+# --- الهيكل العلوي ---
 st.markdown(f"<h1 style='text-align: center; color: #00d4ff; font-size: 50px; font-weight:900;'>ICU DASHBOARD</h1>", unsafe_allow_html=True)
 st.markdown(f"<p style='text-align: center; color: #444; font-weight: bold; font-size: 20px; margin-bottom: 30px;'>PERIOD: 1Q 2026</p>", unsafe_allow_html=True)
 
-# 4. المربعات والدوائر
 cols1 = st.columns(6)
 for i, (name, bm) in enumerate(sq_info):
     v = cur['sq_vals'][i]
@@ -97,7 +98,7 @@ for i, (name, bm) in enumerate(cir_info):
 
 st.markdown("<hr style='border-color:#111; margin:60px 0;'>", unsafe_allow_html=True)
 
-# 5. السفلي (الأجهزة + السلم الموسيقي المعدل)
+# --- الهيكل السفلي ---
 c1, c2 = st.columns([2.2, 1.8])
 with c1:
     st.markdown(f"""<div class="census-box-mini"><div style="color:#FFD700; font-size:12px; font-weight:bold;">CURRENT CENSUS</div><div class="census-num-mini">{cur['census']}</div></div>""", unsafe_allow_html=True)
@@ -110,31 +111,60 @@ with c1:
             st.markdown(f'<div class="gauge-label-bottom">{n}</div>', unsafe_allow_html=True)
 
 with c2:
+    # --- السلم الموسيقي (Musical Staff Chart) ---
     st.markdown('<div class="side-header" style="margin-left:20px;">Staff Chart</div>', unsafe_allow_html=True)
+    
     x_names = [n[0] for n in sq_info]
-    y_vals = cur['sq_vals']
+    y_raw = cur['sq_vals']
     y_bms = [n[1] for n in sq_info]
     
-    # حماية من الـ Divide by Zero أو القيم الفارغة
-    max_y = max(max(y_vals), max(y_bms), 1.0) * 1.3
-    
+    # تصحيح الأصفار (إضافة قيمة مجهرية لضمان الظهور)
+    y_vals = [max(v, 0.001) for v in y_raw]
+    max_axis = max(max(y_vals), max(y_bms), 1.0) * 1.3
+
     fig = go.Figure()
-    # خطوط السلم
+
+    # خطوط السلم (5 خطوط متوازية)
     for i in range(1, 6):
-        fig.add_shape(type="line", x0=-0.5, x1=5.5, y0=(max_y/6)*i, y1=(max_y/6)*i, line=dict(color="#1a1a1a", width=1))
+        fig.add_shape(type="line", x0=-0.5, x1=5.5, y0=(max_axis/6)*i, y1=(max_axis/6)*i, line=dict(color="#222", width=1))
+
+    # رمز مفتاح صول
+    fig.add_annotation(x=-0.4, y=(max_axis/6)*3, text="𝄞", showarrow=False, font=dict(size=60, color="#151515"))
+
+    # أعمدة السلم (رفيعة جداً)
+    fig.add_trace(go.Bar(
+        x=x_names, y=y_vals, 
+        marker_color='#00d4ff', 
+        width=0.03, 
+        hoverinfo='skip',
+        showlegend=False
+    ))
+
+    # النوتات (الأرقام)
+    colors = ['#00d4ff' if y <= b else '#ff4b4b' for y, b in zip(y_raw, y_bms)]
+    fig.add_trace(go.Scatter(
+        x=x_names, y=y_vals, 
+        mode='markers+text',
+        marker=dict(size=32, color=colors, line=dict(color='#000', width=2), symbol='circle'),
+        text=y_raw, # نعرض الرقم الأصلي (حتى لو صفر)
+        textfont=dict(color='#000', size=11, family='Arial Black'),
+        textposition='midcenter',
+        showlegend=False
+    ))
+
+    fig.update_layout(
+        height=450,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        margin=dict(t=10, b=20, l=0, r=0),
+        xaxis=dict(tickfont=dict(color='#888', size=11), showgrid=False, range=[-0.7, 5.7]),
+        yaxis=dict(showgrid=False, showticklabels=False, range=[0, max_axis]),
+        showlegend=False
+    )
     
-    # الأعمدة والنوتات
-    colors = ['#00d4ff' if y <= b else '#ff4b4b' for y, b in zip(y_vals, y_bms)]
-    fig.add_trace(go.Bar(x=x_names, y=y_vals, marker_color='#00d4ff', width=0.03, showlegend=False))
-    fig.add_trace(go.Scatter(x=x_names, y=y_vals, mode='markers+text', 
-                             marker=dict(size=30, color=colors, line=dict(color='#000', width=2)),
-                             text=y_vals, textfont=dict(color='#000', size=10, family='Arial Black'), textposition='midcenter', showlegend=False))
-    
-    fig.update_layout(height=450, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=0, b=20, l=0, r=0),
-                      xaxis=dict(tickfont=dict(color='#888', size=10), showgrid=False),
-                      yaxis=dict(showgrid=False, showticklabels=False, range=[0, max_y]))
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
+# التحديث التلقائي
 time.sleep(15)
 st.session_state.week_index += 1
 st.rerun()
