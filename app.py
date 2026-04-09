@@ -5,12 +5,11 @@ import time
 # 1. إعدادات الصفحة
 st.set_page_config(page_title="ICU Dashboard", layout="wide", initial_sidebar_state="collapsed")
 
-# 2. CSS - تثبيت العلوي وتنسيق العدادات
+# 2. CSS - الجزء العلوي محمي والأسفل متناسق
 st.markdown("""
     <style>
     [data-testid="stAppViewContainer"] { background-color: #000000; color: #ffffff; }
     
-    /* === الجزء العلوي (مثبت) === */
     .kpi-card {
         position: relative; background-color: #0a0a0a; border-radius: 20px;
         overflow: hidden; display: flex; flex-direction: column; justify-content: center;
@@ -43,14 +42,12 @@ st.markdown("""
     .z-layer { position: relative; z-index: 10; width: 100%; }
     .gray-label { color: #aaaaaa; font-size: 28px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; }
     .cyan-val { color: #00d4ff; font-size: 60px; font-weight: 900; }
-    .bm-full-text { color: #555555; font-size: 14px; font-weight: bold; margin-top: 10px; text-transform: uppercase; }
+    .bm-full-text { color: #444444; font-size: 14px; font-weight: bold; margin-top: 10px; text-transform: uppercase; }
 
-    /* === الجزء السفلي المطور === */
     .census-box-mini {
         background: #0a0a0a; border: 2px solid #FFD700; border-radius: 12px; 
         padding: 15px 25px; text-align: left; max-width: 250px; margin-bottom: 20px;
     }
-    .census-label-mini { color: #FFD700; font-size: 12px; font-weight: bold; text-transform: uppercase; }
     .census-num-mini { color: #FFD700; font-size: 40px; font-weight: 900; line-height: 1; margin: 5px 0; }
     .occ-text-mini { color: #FFD700; font-size: 13px; font-weight: bold; }
 
@@ -60,35 +57,32 @@ st.markdown("""
     }
 
     .side-header { color: #00d4ff; font-size: 26px; font-weight: 900; margin-bottom: 15px; text-transform: uppercase; }
+    .week-text { color: #FFD700; font-size: 18px; font-weight: bold; margin-left: 10px; text-transform: none; }
     </style>
     """, unsafe_allow_html=True)
 
-if 'step' not in st.session_state: st.session_state.step = 0
+# 3. داتا الأسابيع (مارس وأول أبريل)
+if 'week_step' not in st.session_state: st.session_state.week_step = 0
 
-# 3. البيانات
-data_source = [
-    {"period": "1Q 2026", "squares": [("Falls", 0.0, 0.18), ("Injuries", 0.0, 0.04), ("HAPI %", 6.67, 4.58), ("CLABSI", 1.5, 3.3), ("CAUTI", 0.0, 0.4), ("VAP", 1.2, 2.1)], 
-     "circles": [("Restraints", 0.45, 0.9), ("VAE Rate", 1.6, 3.4), ("Turnover", 2.5, 3.0), ("Nurse Hr", 14.5, 12.0), ("RN Edu", 85.0, 70.5), ("C-Diff", 0.0, 0.1)],
-     "census": 32, "ett": 14, "foley": 18, "cvc": 9, "stay": 3.4},
-    {"period": "4Q 2025", "squares": [("Falls", 0.2, 0.1), ("Injuries", 0.1, 0.0), ("HAPI %", 11.0, 6.0), ("CLABSI", 1.2, 2.5), ("CAUTI", 0.5, 0.8), ("VAP", 2.0, 2.1)],
-     "circles": [("Restraints", 0.6, 0.9), ("VAE Rate", 2.0, 3.4), ("Turnover", 3.0, 3.0), ("Nurse Hr", 12.0, 12.0), ("RN Edu", 80.0, 70.0), ("C-Diff", 0.1, 0.1)],
-     "census": 28, "ett": 10, "foley": 12, "cvc": 8, "stay": 2.9}
+weekly_data = [
+    {"week": "Week 1 - March", "census": 30, "ett": 12, "foley": 15, "cvc": 8, "stay": 3.1, "sq_val": 0.0},
+    {"week": "Week 2 - March", "census": 32, "ett": 14, "foley": 18, "cvc": 9, "stay": 3.4, "sq_val": 0.0},
+    {"week": "Week 3 - March", "census": 28, "ett": 11, "foley": 14, "cvc": 7, "stay": 2.9, "sq_val": 0.1},
+    {"week": "Week 4 - March", "census": 34, "ett": 16, "foley": 20, "cvc": 11, "stay": 3.8, "sq_val": 0.0},
+    {"week": "Week 1 - April", "census": 31, "ett": 13, "foley": 17, "cvc": 8, "stay": 3.2, "sq_val": 0.2}
 ]
-d = data_source[st.session_state.step % 2]
+
+d = weekly_data[st.session_state.week_step % len(weekly_data)]
 occ_percent = round((d['census'] / 36) * 100, 1)
 
-# دالة لإنشاء عداد نظيف (بدون عنوان داخلي)
 def create_clean_gauge(value, max_val, color_scheme):
     fig = go.Figure(go.Indicator(
-        mode = "gauge+number",
-        value = value,
+        mode = "gauge+number", value = value,
         domain = {'x': [0, 1], 'y': [0, 1]},
         number = {'font': {'size': 38, 'color': '#fff', 'family': 'Arial Black'}},
         gauge = {
             'axis': {'range': [None, max_val], 'tickvals': []},
-            'bar': {'color': "#222"},
-            'bgcolor': "#000",
-            'borderwidth': 0,
+            'bar': {'color': "#222"}, 'bgcolor': "#000", 'borderwidth': 0,
             'steps': [
                 {'range': [0, color_scheme[0]], 'color': "#00ffaa"},
                 {'range': [color_scheme[0], color_scheme[1]], 'color': "#FFD700"},
@@ -96,24 +90,25 @@ def create_clean_gauge(value, max_val, color_scheme):
             ],
         }
     ))
-    fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
-                      margin=dict(t=10, b=0, l=10, r=10), height=130)
+    fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=10, b=0, l=10, r=10), height=130)
     return fig
 
 # الهيدر
 st.markdown(f"<h1 style='text-align: center; color: #00d4ff; font-size: 50px; font-weight:900; letter-spacing: 3px;'>ICU DASHBOARD</h1>", unsafe_allow_html=True)
-st.markdown(f"<p style='text-align: center; color: #444; font-weight: bold; font-size: 20px; margin-bottom: 30px;'>PERIOD: {d['period']}</p>", unsafe_allow_html=True)
+st.markdown(f"<p style='text-align: center; color: #444; font-weight: bold; font-size: 20px; margin-bottom: 30px;'>REAL-TIME MONITORING: 2026</p>", unsafe_allow_html=True)
 
-# 4. العلوي (مثبت)
+# 4. العلوي المثبت (Squares & Circles)
 cols1 = st.columns(6)
-for i, (lab, val, bm) in enumerate(d['squares']):
+sq_names = [("Falls", d['sq_val'], 0.18), ("Injuries", 0.0, 0.04), ("HAPI %", 6.67, 4.58), ("CLABSI", 1.5, 3.3), ("CAUTI", 0.0, 0.4), ("VAP", 1.2, 2.1)]
+for i, (lab, val, bm) in enumerate(sq_names):
     color = "#00ffaa" if val <= bm else "#ff4b4b"
     with cols1[i]:
         st.markdown(f"""<div class="kpi-card"><div class="z-layer"><div class="gray-label">{lab}</div><div class="cyan-val" style="color:{color}">{val}</div><div class="bm-full-text">BENCHMARK: {bm}</div></div></div>""", unsafe_allow_html=True)
 
 st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
 cols2 = st.columns(6)
-for i, (lab, val, bm) in enumerate(d['circles']):
+cir_names = [("Restraints", 0.45, 0.9), ("VAE Rate", 1.6, 3.4), ("Turnover", 2.5, 3.0), ("Nurse Hr", 14.5, 12.0), ("RN Edu", 85.0, 70.5), ("C-Diff", 0.0, 0.1)]
+for i, (lab, val, bm) in enumerate(cir_names):
     is_rev = any(x in lab for x in ["Hr", "Edu"])
     color = "#00ffaa" if (val >= bm if is_rev else val <= bm) else "#ff4b4b"
     with cols2[i]:
@@ -121,13 +116,13 @@ for i, (lab, val, bm) in enumerate(d['circles']):
 
 st.markdown("<hr style='border-color:#111; margin:60px 0;'>", unsafe_allow_html=True)
 
-# 5. السفلي المطور (Census + Attached Devices)
-c1, c2 = st.columns([2.0, 2.0])
+# 5. السفلي (التوقيت المتغير كل 15 ثانية)
+c1, c2 = st.columns([2.2, 1.8])
 
 with c1:
-    st.markdown(f"""<div class="census-box-mini"><div class="census-label-mini">Current Census</div><div class="census-num-mini">{d['census']}</div><div class="occ-text-mini">Occupancy: {occ_percent}% (of 36)</div></div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="census-box-mini"><div style="color:#FFD700; font-size:12px; font-weight:bold;">CURRENT CENSUS</div><div class="census-num-mini">{d['census']}</div><div class="occ-text-mini">Occupancy: {occ_percent}% (of 36)</div></div>""", unsafe_allow_html=True)
     
-    st.markdown('<div class="side-header">ATTACHED DEVICES</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="side-header">ATTACHED DEVICES <span class="week-text">({d["week"]})</span></div>', unsafe_allow_html=True)
     
     g_cols = st.columns(4)
     dev_info = [("Pt with ETT", d['ett'], 36, [10, 20]), ("Pt with Foley", d['foley'], 36, [15, 25]), 
@@ -140,13 +135,13 @@ with c1:
 
 with c2:
     st.markdown('<div class="side-header" style="margin-left:20px;">PERFORMANCE ANALYTICS</div>', unsafe_allow_html=True)
-    labels = [s[0] for s in d['squares']]; vals = [s[1] for s in d['squares']]; bms = [s[2] for s in d['squares']]
     fig = go.Figure()
-    fig.add_trace(go.Bar(x=labels, y=vals, name="Actual", marker_color='#00d4ff', text=vals, textposition='outside'))
-    fig.add_trace(go.Bar(x=labels, y=bms, name="Benchmark", marker_color='#1a1a1a', text=bms, textposition='outside'))
-    fig.update_layout(height=450, barmode='group', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=20, b=0, l=0, r=0), bargap=0.25, legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center", font=dict(color="#888")), xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#111'))
+    fig.add_trace(go.Bar(x=[s[0] for s in sq_names], y=[s[1] for s in sq_names], name="Actual", marker_color='#00d4ff'))
+    fig.add_trace(go.Bar(x=[s[0] for s in sq_names], y=[s[2] for s in sq_names], name="Benchmark", marker_color='#1a1a1a'))
+    fig.update_layout(height=450, barmode='group', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=20, b=0, l=0, r=0), legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center"), xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#111'))
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
+# التحديث التلقائي كل 15 ثانية للأسبوع التالي
 time.sleep(15)
-st.session_state.step += 1
+st.session_state.week_step += 1
 st.rerun()
