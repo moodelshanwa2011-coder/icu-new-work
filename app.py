@@ -1,12 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-# إعداد الصفحة لتكون بملء الشاشة
-st.set_page_config(
-    page_title="ICU Clinical | Weekly Dashboard",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+st.set_page_config(page_title="ICU Advanced Monitor | SGH", layout="wide", initial_sidebar_state="collapsed")
 
 dashboard_html = """
 <!DOCTYPE html>
@@ -16,235 +11,179 @@ dashboard_html = """
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --bg: #020617;
-            --card-bg: rgba(15, 23, 42, 0.8);
-            --neon-emerald: #10b981;
-            --neon-blue: #22d3ee;
-            --border-clr: rgba(255, 255, 255, 0.1);
-            --text-main: #f8fafc;
-            --text-dim: #94a3b8;
+            --bg: #01040a;
+            --panel-bg: rgba(10, 25, 47, 0.95);
+            --safe-blue: #00f2ff;
+            --grid-line: rgba(0, 242, 255, 0.1);
+            --border-glow: #00f2ff;
         }
         
         body {
-            font-family: 'Inter', -apple-system, sans-serif;
+            font-family: 'Inter', sans-serif;
             background-color: var(--bg);
-            color: var(--text-main);
-            margin: 0;
-            padding: 25px;
-            overflow: hidden;
+            background-image: 
+                linear-gradient(var(--grid-line) 2px, transparent 2px),
+                linear-gradient(90deg, var(--grid-line) 2px, transparent 2px);
+            background-size: 50px 50px;
+            color: #fff; margin: 0; padding: 15px; overflow: hidden;
         }
-
-        .dashboard-container { max-width: 1580px; margin: 0 auto; }
 
         .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            padding: 20px 45px;
-            border-radius: 20px;
-            border: 1px solid var(--border-clr);
-            margin-bottom: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--panel-bg); padding: 15px 40px; border-radius: 12px;
+            border: 3px solid var(--safe-blue); margin-bottom: 20px;
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
         }
 
-        .q-badge {
-            background: linear-gradient(135deg, #059669, #10b981);
-            color: #020617;
-            padding: 10px 35px;
-            border-radius: 12px;
-            font-weight: 900;
-            font-size: 1.4rem;
-            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+        .main-container {
+            display: grid; grid-template-columns: 2.5fr 1.5fr; gap: 20px; height: 80vh;
         }
 
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            margin-bottom: 25px;
+        .panel {
+            background: var(--panel-bg); border: 2px solid var(--border-glow);
+            border-radius: 15px; padding: 25px; backdrop-filter: blur(10px);
+            display: flex; flex-direction: column;
+            box-shadow: 0 0 10px rgba(0, 242, 255, 0.1);
         }
 
-        .kpi-card {
-            background: var(--card-bg);
-            border-radius: 22px;
-            padding: 25px;
-            text-align: center;
-            border: 2px solid var(--border-clr);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        .panel-title {
+            font-size: 1.1rem; font-weight: 900; color: var(--safe-blue);
+            text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px;
+            border-left: 8px solid var(--safe-blue); padding-left: 15px;
         }
 
-        .kpi-card:hover {
-            transform: translateY(-5px);
-            border-color: var(--neon-emerald);
-            background: rgba(16, 185, 129, 0.03);
+        /* تنسيق المربعات الصغيرة بدل الدائرة */
+        .mini-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%;
         }
 
-        .kpi-title { 
-            font-size: 0.9rem; 
-            font-weight: 700; 
-            color: var(--text-dim); 
-            text-transform: uppercase; 
-            margin-bottom: 10px;
-            letter-spacing: 1px;
+        .mini-box {
+            background: rgba(0, 242, 255, 0.05); border: 1.5px solid rgba(0, 242, 255, 0.4);
+            border-radius: 10px; padding: 15px; text-align: center;
         }
 
-        .val-large {
-            font-size: 5rem;
-            font-weight: 900;
-            line-height: 1;
-            color: var(--neon-emerald);
-            text-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+        .mini-val { font-size: 2.2rem; font-weight: 900; color: var(--safe-blue); display: block; }
+        .mini-lbl { font-size: 0.7rem; color: #cbd5e1; text-transform: uppercase; font-weight: 700; }
+
+        .total-box {
+            grid-column: span 2; background: rgba(255, 255, 255, 0.1); border-color: #fff;
         }
+        .total-box .mini-val { color: #fff; font-size: 3rem; }
 
-        .total-node { border-color: #fff; }
-        .total-node .val-large { color: #fff; text-shadow: none; }
-
-        .bottom-section {
-            display: grid;
-            grid-template-columns: 2fr 1.1fr;
-            gap: 25px;
-            height: 350px;
+        #dateLabel {
+            background: var(--safe-blue); color: #000; padding: 8px 30px; 
+            border-radius: 8px; font-weight: 900; font-size: 1.3rem;
         }
-
-        .glass-panel {
-            background: var(--card-bg);
-            border-radius: 25px;
-            padding: 25px;
-            border: 1px solid var(--border-clr);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .score-circle {
-            width: 180px;
-            height: 180px;
-            border-radius: 50%;
-            border: 10px solid var(--neon-emerald);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 0 30px rgba(16, 185, 129, 0.2);
-        }
-
-        .score-num { font-size: 3.5rem; font-weight: 900; color: var(--neon-emerald); }
-        .score-txt { font-size: 1rem; font-weight: 700; color: var(--text-dim); margin-top: 15px; }
-
-        .fade-in { animation: fadeIn 0.8s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
 <body>
-    <div class="dashboard-container">
-        <div class="header">
-            <div>
-                <h1 style="margin:0; font-size:1.6rem; letter-spacing:1px;">ICU <span style="color:var(--neon-emerald)">DEVICE UTILIZATION</span></h1>
-                <p style="margin:5px 0 0 0; color:var(--text-dim); font-weight:600;">PATIENT LOAD MONITORING</p>
-            </div>
-            <div class="q-badge" id="weekLabel">MARCH - WEEK 1</div>
-        </div>
 
-        <div class="grid" id="kpiGrid">
-            </div>
+<div class="header">
+    <div style="font-size: 1.8rem; font-weight: 900; letter-spacing: 3px;">ICU <span style="color:var(--safe-blue)">DEVICE MONITOR</span> 2026</div>
+    <div id="dateLabel">...</div>
+</div>
 
-        <div class="bottom-section">
-            <div class="glass-panel">
-                <canvas id="deviceChart"></canvas>
-            </div>
-            <div class="glass-panel">
-                <div class="score-circle">
-                    <div class="score-num" id="totalPtVal">0</div>
-                </div>
-                <div class="score-txt">TOTAL PATIENTS</div>
-                <p style="color:#475569; font-size:0.75rem; margin-top:10px;">Current Week Census</p>
-            </div>
+<div class="main-container">
+    <div class="panel">
+        <div class="panel-title">Device Utilization Analytics</div>
+        <div style="flex-grow: 1; position: relative;">
+            <canvas id="deviceChart"></canvas>
         </div>
     </div>
+    
+    <div class="panel">
+        <div class="panel-title">Current Census Summary</div>
+        <div class="mini-grid" id="miniGrid">
+            </div>
+    </div>
+</div>
 
-    <script>
-        // البيانات الأسبوعية لشهر مارس وأبريل
-        const weeklyData = [
-            {t: "MARCH - Week 1", total: 45, devices: [30, 18, 14, 5, 42]},
-            {t: "MARCH - Week 2", total: 48, devices: [32, 20, 15, 5, 45]},
-            {t: "MARCH - Week 3", total: 42, devices: [28, 16, 12, 4, 40]},
-            {t: "MARCH - Week 4", total: 44, devices: [29, 17, 13, 4, 41]},
-            {t: "APRIL - Week 1", total: 40, devices: [25, 14, 10, 3, 36]},
-            {t: "APRIL - Week 2", total: 38, devices: [22, 12, 9, 3, 34]},
-            {t: "APRIL - Week 3", total: 41, devices: [26, 15, 11, 4, 37]},
-            {t: "APRIL - Week 4", total: 39, devices: [24, 13, 10, 3, 35]}
-        ];
+<script>
+    const weeklyData = [
+        {t: "MARCH - Week 1", total: 45, foley: 30, central: 18, ett: 14, tt: 5, iv: 42},
+        {t: "MARCH - Week 2", total: 48, foley: 32, central: 20, ett: 15, tt: 5, iv: 45},
+        {t: "MARCH - Week 3", total: 42, foley: 28, central: 16, ett: 12, tt: 4, iv: 40},
+        {t: "MARCH - Week 4", total: 44, foley: 29, central: 17, ett: 13, tt: 4, iv: 41},
+        {t: "APRIL - Week 1", total: 40, foley: 25, central: 14, ett: 10, tt: 3, iv: 36},
+        {t: "APRIL - Week 2", total: 38, foley: 22, central: 12, ett: 9, tt: 3, iv: 34},
+        {t: "APRIL - Week 3", total: 41, foley: 26, central: 15, ett: 11, tt: 4, iv: 37},
+        {t: "APRIL - Week 4", total: 39, foley: 24, central: 13, ett: 10, tt: 3, iv: 35}
+    ];
 
-        const labels = ["Foley Cath", "Central Line", "ETT", "T.T", "IV Access"];
-        let step = 0; 
-        let barChart;
+    let currentIdx = 0;
+    let myChart;
 
-        function update() {
-            const data = weeklyData[step];
-            document.getElementById('weekLabel').innerText = data.t;
-            document.getElementById('totalPtVal').innerText = data.total;
-            
-            const grid = document.getElementById('kpiGrid');
-            grid.innerHTML = '';
-            grid.classList.remove('fade-in');
-            void grid.offsetWidth;
-            grid.classList.add('fade-in');
+    function updateDashboard() {
+        const d = weeklyData[currentIdx];
+        document.getElementById('dateLabel').innerText = d.t;
 
-            // إضافة الكروت الستة (5 أجهزة + 1 إجمالي المرضى)
-            labels.forEach((label, i) => {
-                grid.innerHTML += `
-                    <div class="kpi-card">
-                        <div class="kpi-title">Number of Pt with<br>${label}</div>
-                        <div class="val-large">${data.devices[i]}</div>
-                    </div>`;
-            });
-            
-            // إضافة كرت إجمالي المرضى في الشبكة أيضاً
-            grid.innerHTML += `
-                <div class="kpi-card total-node">
-                    <div class="kpi-title">TOTAL<br>PATIENTS</div>
-                    <div class="val-large">${data.total}</div>
-                </div>`;
+        // تحديث المربعات الصغيرة
+        const miniGrid = document.getElementById('miniGrid');
+        miniGrid.innerHTML = `
+            <div class="mini-box total-box">
+                <span class="mini-val">${d.total}</span>
+                <span class="mini-lbl">Total Patients</span>
+            </div>
+            <div class="mini-box">
+                <span class="mini-val">${d.foley}</span>
+                <span class="mini-lbl">Foley Cath</span>
+            </div>
+            <div class="mini-box">
+                <span class="mini-val">${d.central}</span>
+                <span class="mini-lbl">Central Line</span>
+            </div>
+            <div class="mini-box">
+                <span class="mini-val">${d.ett}</span>
+                <span class="mini-lbl">ETT</span>
+            </div>
+            <div class="mini-box">
+                <span class="mini-val">${d.tt}</span>
+                <span class="mini-lbl">T.T</span>
+            </div>
+            <div class="mini-box" style="grid-column: span 2;">
+                <span class="mini-val">${d.iv}</span>
+                <span class="mini-lbl">IV Access</span>
+            </div>
+        `;
 
-            if(!barChart) {
-                const ctx = document.getElementById('deviceChart').getContext('2d');
-                barChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: { 
-                        labels: labels, 
-                        datasets: [{ 
-                            label: 'Device Utilization',
-                            data: data.devices, 
-                            backgroundColor: '#10b981', 
-                            borderRadius: 8,
-                            barThickness: 35
-                        }] 
-                    },
-                    options: { 
-                        maintainAspectRatio: false, 
-                        plugins: { legend: { display: false } },
-                        scales: { 
-                            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
-                            x: { ticks: { color: '#f8fafc', font: { weight: 'bold' } } }
-                        }
+        // تحديث البار تشارت
+        const chartData = [d.foley, d.central, d.ett, d.tt, d.iv];
+        if(!myChart) {
+            const ctx = document.getElementById('deviceChart').getContext('2d');
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ["Foley", "Central", "ETT", "T.T", "IV"],
+                    datasets: [{
+                        label: 'Patients Count',
+                        data: chartData,
+                        backgroundColor: '#00f2ff',
+                        borderRadius: 5,
+                        barThickness: 45
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                        x: { ticks: { color: '#fff', font: { weight: 'bold' } } }
                     }
-                });
-            } else {
-                barChart.data.datasets[0].data = data.devices;
-                barChart.update();
-            }
-
-            step = (step + 1) % weeklyData.length;
+                }
+            });
+        } else {
+            myChart.data.datasets[0].data = chartData;
+            myChart.update();
         }
 
-        update(); 
-        setInterval(update, 15000); // التحديث كل 15 ثانية
-    </script>
+        currentIdx = (currentIdx + 1) % weeklyData.length;
+    }
+
+    updateDashboard();
+    setInterval(updateDashboard, 15000); // تحديث كل 15 ثانية
+</script>
 </body>
 </html>
 """
 
-components.html(dashboard_html, height=1000, scrolling=False)
+components.html(dashboard_html, height=900, scrolling=False)
