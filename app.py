@@ -5,36 +5,37 @@ import time
 # 1. إعدادات الصفحة
 st.set_page_config(page_title="ICU Performance Hub", layout="wide", initial_sidebar_state="collapsed")
 
-# 2. CSS المستقر والاحترافي
+# 2. CSS المستقر والنهائي
 st.markdown("""
     <style>
     [data-testid="stAppViewContainer"] { background-color: #000000; color: #ffffff; }
     
-    /* حركة الموجة النيونية للمربعات والدوائر */
-    .wave-container {
+    /* المربعات (الصف الأول) */
+    .kpi-card {
         position: relative; background-color: #0a0a0a; border-radius: 12px;
         overflow: hidden; display: flex; flex-direction: column; justify-content: center;
-        text-align: center; height: 155px; margin-bottom: 10px;
+        text-align: center; height: 155px; margin-bottom: 20px;
     }
-    .wave-container::before {
-        content: ''; position: absolute; width: 200%; height: 200%;
+    .kpi-card::before {
+        content: ''; position: absolute; width: 180%; height: 180%;
         background: conic-gradient(#00d4ff, #001a1a, #00d4ff);
         animation: rotate-wave 4s linear infinite; top: 50%; left: 50%;
     }
-    .wave-container::after {
+    .kpi-card::after {
         content: ''; position: absolute; background-color: #0a0a0a; inset: 3px; border-radius: 10px;
     }
-    
-    .wave-circle-outer {
-        position: relative; width: 130px; height: 130px; border-radius: 50%;
+
+    /* الدوائر (الصف الثاني) */
+    .circle-container {
+        position: relative; width: 140px; height: 140px; border-radius: 50%;
         margin: auto; overflow: hidden; display: flex; justify-content: center; align-items: center;
     }
-    .wave-circle-outer::before {
+    .circle-container::before {
         content: ''; position: absolute; width: 200%; height: 200%;
         background: conic-gradient(#00d4ff, #001a1a, #00d4ff);
         animation: rotate-wave 5s linear infinite; top: 50%; left: 50%;
     }
-    .wave-circle-outer::after {
+    .circle-container::after {
         content: ''; position: absolute; background-color: #0a0a0a; inset: 4px; border-radius: 50%;
     }
 
@@ -44,8 +45,6 @@ st.markdown("""
     }
 
     .z-layer { position: relative; z-index: 10; width: 100%; }
-    
-    /* المسميات والقيم */
     .gray-label { color: #aaaaaa; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
     .cyan-val { color: #00d4ff; font-size: 32px; font-weight: 900; }
     .bm-text { color: #444444; font-size: 11px; font-weight: bold; margin-top: 4px; }
@@ -98,14 +97,65 @@ cols1 = st.columns(6)
 for i, (lab, val, bm) in enumerate(d['squares']):
     color = "#00ffaa" if val <= bm else "#ff4b4b"
     with cols1[i]:
-        st.markdown(f"""<div class="wave-container"><div class="z-layer">
+        st.markdown(f"""<div class="kpi-card"><div class="z-layer">
             <div class="gray-label">{lab}</div>
             <div class="cyan-val" style="color:{color}">{val}</div>
             <div class="bm-text">BENCHMARK: {bm}</div>
         </div></div>""", unsafe_allow_html=True)
 
-# 5. الدوائر الـ 6 (الصف الثاني - رجعت كما طلبت)
+# 5. الدوائر الـ 6 (الصف الثاني - المستعادة)
 cols2 = st.columns(6)
 for i, (lab, val, bm) in enumerate(d['circles']):
     is_rev = any(x in lab for x in ["Hr", "Edu"])
-    color = "#00ffaa
+    color = "#00ffaa" if (val >= bm if is_rev else val <= bm) else "#ff4b4b"
+    with cols2[i]:
+        st.markdown(f"""
+        <div style="text-align:center;">
+            <div class="circle-container"><div class="z-layer">
+                <div class="cyan-val" style="font-size: 24px; color:{color}">{val}</div>
+            </div></div>
+            <div class="gray-label" style="margin-top:10px; font-size:11px;">{lab}</div>
+            <div class="bm-text" style="color:#333;">BM: {bm}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+st.markdown("<hr style='border-color:#111; margin:30px 0;'>", unsafe_allow_html=True)
+
+# 6. الجزء السفلي (Census / Devices / Bar)
+c1, c2 = st.columns([1.3, 2.5])
+
+with c1:
+    st.markdown('<div class="side-header">36 CAPACITY</div>', unsafe_allow_html=True)
+    st.markdown(f"""<div class="census-container">
+        <div class="gray-label" style="color:#FFD700;">UNIT CENSUS</div>
+        <div class="census-big-num">{d['census']}</div>
+        <div style="color:#FFD700; font-weight:bold; font-size:14px;">OCCUPANCY: {d['occ']}</div>
+    </div>""", unsafe_allow_html=True)
+    
+    devices = [("Pt with ETT", d['ett']), ("Pt with Foley", d['foley']), ("Pt with CVC", d['cvc']), ("Avg Stay", d['stay'])]
+    for name, val in devices:
+        st.markdown(f"""<div class="device-row"><span class="device-name">{name}</span><span class="device-val">{val}</span></div>""", unsafe_allow_html=True)
+
+with c2:
+    st.markdown('<div class="side-header" style="margin-left:20px;">PERFORMANCE ANALYTICS</div>', unsafe_allow_html=True)
+    
+    labels = [s[0] for s in d['squares']]
+    vals = [s[1] for s in d['squares']]
+    bms = [s[2] for s in d['squares']]
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=labels, y=vals, name="Actual", marker_color='#00d4ff', text=vals, textposition='outside'))
+    fig.add_trace(go.Bar(x=labels, y=bms, name="Benchmark", marker_color='#1a1a1a', text=bms, textposition='outside'))
+
+    fig.update_layout(
+        height=420, barmode='group', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+        margin=dict(t=20, b=0, l=0, r=0), bargap=0.25,
+        legend=dict(orientation="h", y=1.15, x=0.5, xanchor="center", font=dict(color="#888")),
+        xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#111')
+    )
+    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+
+# التحديث التلقائي
+time.sleep(15)
+st.session_state.step += 1
+st.rerun()
