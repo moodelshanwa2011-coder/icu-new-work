@@ -3,35 +3,49 @@ import plotly.graph_objects as go
 import time
 
 # 1. إعدادات الصفحة
-st.set_page_config(page_title="ICU Performance Hub", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="ICU Elite Dashboard", layout="wide", initial_sidebar_state="collapsed")
 
-# 2. تصميم CSS (تركيز على الوضوح التام والحدود الفخمة)
+# 2. تصميم CSS احترافي (Focus on Typography & Spacing)
 st.markdown("""
     <style>
-    [data-testid="stAppViewContainer"] { background-color: #000000; }
-    /* مربعات الأجهزة - احترافية وبدون عنوان سفلي */
-    .dev-card {
-        background-color: #0d0d0d;
-        border: 2px solid #1f77b4;
-        border-radius: 12px;
-        padding: 20px;
+    [data-testid="stAppViewContainer"] { background-color: #000000; padding: 20px; }
+    
+    /* تنسيق كروت الأجهزة (يسار) */
+    .dev-box {
+        background-color: #0a0a0a;
+        border: 1px solid #1f77b4;
+        border-left: 4px solid #00d4ff;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px; /* مسافة أوسع بين المربعات */
         text-align: center;
-        margin-bottom: 12px;
     }
-    .dev-label { color: #ffffff; font-size: 16px; font-weight: bold; margin-bottom: 5px; }
-    .dev-value { color: #00d4ff; font-size: 38px; font-weight: 900; }
-    
-    /* وضوح أسماء الـ KPIs */
-    .gauge-label { color: #ffffff !important; font-size: 22px !important; font-weight: 900 !important; text-shadow: 2px 2px 4px #000; }
-    .bench-text { color: #888; font-size: 16px; font-weight: bold; margin-top: -10px; text-align: center; }
-    
+    .dev-label { color: #888; font-size: 14px; font-weight: bold; text-transform: uppercase; }
+    .dev-value { color: #ffffff; font-size: 30px; font-weight: 900; }
+
+    /* تحسين وضوح أسماء الـ KPIs */
+    .gauge-title {
+        color: #ffffff;
+        font-size: 16px !important;
+        font-weight: 800;
+        margin-bottom: -10px;
+        text-align: center;
+    }
+    .bench-label {
+        color: #555;
+        font-size: 14px;
+        font-weight: bold;
+        text-align: center;
+        margin-top: -5px;
+    }
+    hr { border: 0.5px solid #222; margin: 30px 0; }
     #stProgress { display: none; }
     </style>
     """, unsafe_allow_html=True)
 
 if 'step' not in st.session_state: st.session_state.step = 0
 
-# 3. الداتا (نفس الداتا الدقيقة من الـ PDF)
+# 3. داتا الـ PDF والصور
 data_cycle = [
     {
         "period": "3Q 2025",
@@ -52,82 +66,91 @@ data_cycle = [
 ]
 d = data_cycle[st.session_state.step % len(data_cycle)]
 
-# --- العنوان ---
-st.markdown(f"<h1 style='text-align: center; color: white;'>🏥 ICU DIGITAL COMMAND CENTER</h1>", unsafe_allow_html=True)
-st.markdown(f"<p style='text-align: center; color: #00d4ff; font-size: 20px;'>QUARTER: {d['period']}</p>", unsafe_allow_html=True)
+# --- العنوان العلوي ---
+st.markdown(f"<h2 style='text-align: center; color: white; letter-spacing: 2px;'>ICU PERFORMANCE COMMAND CENTER</h2>", unsafe_allow_html=True)
+st.markdown(f"<p style='text-align: center; color: #00d4ff;'>REPORTING PERIOD: {d['period']}</p>", unsafe_allow_html=True)
 
-# 4. الـ KPIs (Gauges) - النص دوائر فوق
-def draw_bold_gauge(label, val, target, is_perc=False, is_edu=False):
+# 4. دالة الـ Gauge المحسنة (صغيرة وواضحة)
+def draw_clean_gauge(label, val, target, is_perc=False, is_edu=False):
+    # منطق الألوان (إشارة المرور)
     color = "#00CC96" if (val <= target if not is_edu else val >= target) else "#FF4B4B"
+    
     fig = go.Figure(go.Indicator(
         mode="gauge+number", value=val,
-        number={'suffix': "%" if is_perc else "", 'font': {'size': 35, 'color': 'white'}},
-        title={'text': label, 'font': {'size': 22, 'color': 'white', 'family': 'Arial Black'}},
-        gauge={'axis': {'range': [0, max(val, target)*1.6]}, 'bar': {'color': color},
-               'bgcolor': "#111", 'threshold': {'line': {'color': "white", 'width': 4}, 'thickness': 0.8, 'value': target}}))
-    fig.update_layout(height=180, margin=dict(l=20, r=20, t=40, b=0), paper_bgcolor='rgba(0,0,0,0)')
+        number={'suffix': "%" if is_perc else "", 'font': {'size': 26, 'color': 'white'}},
+        gauge={'axis': {'range': [0, max(val, target)*1.8], 'visible': False},
+               'bar': {'color': color, 'thickness': 0.75},
+               'bgcolor': "#1a1a1a",
+               'threshold': {'line': {'color': "white", 'width': 3}, 'thickness': 0.8, 'value': target}}))
+    
+    fig.update_layout(height=130, margin=dict(l=25, r=25, t=10, b=10), paper_bgcolor='rgba(0,0,0,0)')
+    
+    # اسم الـ KPI فوق الرسم
+    st.markdown(f'<div class="gauge-title">{label}</div>', unsafe_allow_html=True)
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-    st.markdown(f'<div class="bench-text">Benchmark: {target}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="bench-label">Bench: {target}</div>', unsafe_allow_html=True)
 
-# صفين من الـ Gauges
-c1, c2, c3, c4 = st.columns(4)
-with c1: draw_bold_gauge("Total Falls", d['falls'], d['falls_m'])
-with c2: draw_bold_gauge("Injury Falls", d['injury'], d['injury_m'])
-with c3: draw_bold_gauge("HAPI %", d['hapi'], d['hapi_m'], True)
-with c4: draw_bold_gauge("RN Education", d['edu'], d['edu_m'], True, True)
-
+# توزيع الـ 8 KPIs في صفين بمسافات واسعة
 st.markdown("<br>", unsafe_allow_html=True)
+g_c1, g_c2, g_c3, g_c4 = st.columns(4)
+with g_c1: draw_clean_gauge("Total Falls", d['falls'], d['falls_m'])
+with g_c2: draw_clean_gauge("Injury Falls", d['injury'], d['injury_m'])
+with g_c3: draw_clean_gauge("HAPI %", d['hapi'], d['hapi_m'], True)
+with g_c4: draw_clean_gauge("RN Education", d['edu'], d['edu_m'], True, True)
 
-c5, c6, c7, c8 = st.columns(4)
-with c5: draw_bold_gauge("Restraints", d['restraint'], d['restraint_m'])
-with c6: draw_bold_gauge("CLABSI Rate", d['clabsi'], d['clabsi_m'])
-with c7: draw_bold_gauge("CAUTI Rate", d['cauti'], d['cauti_m'])
-with c8: draw_bold_gauge("VAE/VAP", d['vae'], d['vae_m'])
+st.markdown("<div style='margin-top: 40px;'></div>", unsafe_allow_html=True) # مسافة بين الصفين
 
-st.markdown("<br><hr style='border: 1px solid #333;'><br>", unsafe_allow_html=True)
+g_c5, g_c6, g_c7, g_c8 = st.columns(4)
+with g_c5: draw_clean_gauge("Restraints", d['restraint'], d['restraint_m'])
+with g_c6: draw_clean_gauge("CLABSI Rate", d['clabsi'], d['clabsi_m'])
+with g_c7: draw_clean_gauge("CAUTI Rate", d['cauti'], d['cauti_m'])
+with g_c8: draw_clean_gauge("VAE/VAP", d['vae'], d['vae_m'])
 
-# 5. الجزء السفلي: المربعات (يسار) + البار تشارت (يمين)
-col_left, col_right = st.columns([1, 2.8])
+st.markdown("<hr>", unsafe_allow_html=True)
+
+# 5. الجزء السفلي: المربعات (يسار) + البار الاحترافي (يمين)
+col_left, col_right = st.columns([1, 2.5])
 
 with col_left:
-    # المربعات فوق بعضها بدون عنوان خارجي
-    def quick_box(l, v):
-        st.markdown(f'<div class="dev-card"><div class="dev-label">{l}</div><div class="dev-value">{v}</div></div>', unsafe_allow_html=True)
-    quick_box("Ventilators", d['vents'])
-    quick_box("Foley Catheter", d['foley'])
-    quick_box("Central Line", d['cvc'])
-    quick_box("Total Stay", d['stay'])
+    def dev_card(l, v):
+        st.markdown(f'<div class="dev-box"><div class="dev-label">{l}</div><div class="dev-value">{v}</div></div>', unsafe_allow_html=True)
+    dev_card("Ventilators", d['vents'])
+    dev_card("Foley Catheter", d['foley'])
+    dev_card("Central Line", d['cvc'])
+    dev_card("Total Stay", d['stay'])
 
 with col_right:
-    # بار تشارت احترافي جداً
+    # بار تشارت احترافي (ألوان متدرجة وتصميم عصري)
     labels = ['Falls', 'Injury', 'Restraint', 'CLABSI', 'CAUTI', 'VAE']
     vals = [d['falls'], d['injury'], d['restraint'], d['clabsi'], d['cauti'], d['vae']]
     benchs = [d['falls_m'], d['injury_m'], d['restraint_m'], d['clabsi_m'], d['cauti_m'], d['vae_m']]
     
     fig_bar = go.Figure()
+    # أعمدة المستشفى (أزرق نيون بحدود)
     fig_bar.add_trace(go.Bar(
-        name='Current Unit', x=labels, y=vals,
-        marker=dict(color='#00d4ff', line=dict(color='#fff', width=1)),
+        name='Current Performance', x=labels, y=vals,
+        marker=dict(color='#00d4ff', line=dict(color='#ffffff', width=1.5)),
         text=vals, textposition='outside', textfont=dict(color='white', size=14)
     ))
+    # أعمدة الـ Benchmark (رمادي داكن مطفي)
     fig_bar.add_trace(go.Bar(
         name='Benchmark', x=labels, y=benchs,
-        marker=dict(color='#222', line=dict(color='#444', width=1)),
+        marker=dict(color='#333333', line=dict(color='#555555', width=1)),
         text=benchs, textposition='outside', textfont=dict(color='#888', size=12)
     ))
     
     fig_bar.update_layout(
-        height=400, barmode='group',
+        height=450, barmode='group',
         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='white'),
-        legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5),
+        font=dict(color='white', family='sans-serif'),
+        legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5, font=dict(size=14)),
         margin=dict(l=0, r=0, t=10, b=0),
-        yaxis=dict(showgrid=True, gridcolor='#111', zeroline=False),
-        xaxis=dict(tickfont=dict(size=14, color='white', family='Arial Black'))
+        yaxis=dict(showgrid=True, gridcolor='#222', zeroline=False),
+        xaxis=dict(tickfont=dict(size=14, weight='bold'))
     )
     st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
 
-# التحديث التلقائي
+# تحديث تلقائي صامت
 time.sleep(15)
 st.session_state.step += 1
 st.rerun()
