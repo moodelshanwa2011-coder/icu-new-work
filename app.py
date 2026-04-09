@@ -1,74 +1,92 @@
 import streamlit as st
 import pandas as pd
+import plotly.graph_objects as go
 import plotly.express as px
+import time
 
-# إعدادات الصفحة لتكون احترافية وعريضة
-st.set_page_config(page_title="ICU Performance Dashboard", layout="wide")
+# --- إعدادات الصفحة الاحترافية ---
+st.set_page_config(page_title="ICU Live Performance", layout="wide", initial_sidebar_state="collapsed")
 
-# تنسيق العنوان والشعار
-st.title("🏥 Saudi German Hospital - Riyadh")
-st.subheader("Intensive Care Unit Performance Dashboard")
-st.markdown("---")
+# تصميم CSS مخصص لجعل الواجهة تبدو كشاشة مراقبة (Dashboard Dark Mode look)
+st.markdown("""
+    <style>
+    .main { background-color: #0e1117; }
+    div[data-testid="stMetricValue"] { font-size: 40px; color: #00d4ff; }
+    .stPlotlyChart { border: 1px solid #30363d; border-radius: 15px; }
+    h1, h2, h3 { color: #ffffff; text-align: center; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    </style>
+    """, unsafe_allow_html=True)
 
-# --- الجزء الأول: بيانات الـ PDF (المؤشرات المرجعية NDNQI) ---
-st.header("📊 Quarterly Benchmarks & Clinical Indicators")
+# --- محرك الحركة (Logic for live switching) ---
+if 'frame' not in st.session_state:
+    st.session_state.frame = 0
 
-# تحميل البيانات (استبدل هذا بملف البيانات الخاص بك)
-# df_benchmarks = pd.read_csv("icu_benchmarks.csv")
+# بيانات الـ PDF (أرباع السنة)
+quarters = ["4Q 2023", "1Q 2024", "2Q 2024", "3Q 2024", "4Q 2024", "1Q 2025", "2Q 2025", "3Q 2025"]
+current_q_idx = st.session_state.frame % len(quarters)
 
-# عرض المؤشرات في كروت (Metrics) لأهم البيانات
+# بيانات الصور (الأسابيع)
+weeks = ["Week 1", "Week 2", "Week 3", "Week 4"]
+current_w_idx = st.session_state.frame % len(weeks)
+
+# --- العنوان العلوي المتحرك ---
+st.markdown(f"<h1>🏥 ICU LIVE MONITORING: {quarters[current_q_idx]}</h1>", unsafe_allow_html=True)
+st.markdown(f"<p style='text-align: center; color: #888;'>Last Update: {time.strftime('%H:%M:%S')}</p>", unsafe_allow_html=True)
+
+# --- الجزء الأول: الأرقام في دوائر (Gauge Charts) مستوحاة من PDF ---
+st.subheader("Key Clinical Indicators (NDNQI)")
 col1, col2, col3, col4 = st.columns(4)
+
+def create_gauge(title, value, max_val, color):
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=value,
+        title={'text': title, 'font': {'size': 18, 'color': 'white'}},
+        number={'font': {'color': color}, 'suffix': "%" if "%" in title else ""},
+        gauge={
+            'axis': {'range': [0, max_val], 'tickwidth': 1, 'tickcolor': "white"},
+            'bar': {'color': color},
+            'bgcolor': "rgba(0,0,0,0)",
+            'borderwidth': 2,
+            'bordercolor': "#333",
+        }
+    ))
+    fig.update_layout(height=280, margin=dict(l=30, r=30, t=50, b=20), paper_bgcolor='rgba(0,0,0,0)')
+    return fig
+
+# محاكاة تغير البيانات بناءً على الربع السنوي المختار
 with col1:
-    st.metric(label="Total Falls (3Q 2025)", value="0.18", delta="Target: 0")
+    st.plotly_chart(create_gauge("Falls Rate", 0.18 if current_q_idx % 2 == 0 else 0.25, 1, "#FF4B4B"), use_container_width=True)
 with col2:
-    st.metric(label="CLABSI Rate", value="3.38", delta="-1.50", delta_color="inverse")
+    st.plotly_chart(create_gauge("HAPI %", 4.58 if current_q_idx < 4 else 6.67, 10, "#00D4FF"), use_container_width=True)
 with col3:
-    st.metric(label="HAPI %", value="4.58%", delta="Benchmark: 6.67%")
+    st.plotly_chart(create_gauge("RN Education", 70.59 if current_q_idx % 2 == 0 else 85.01, 100, "#00CC96"), use_container_width=True)
 with col4:
-    st.metric(label="RN Education (BSN+)", value="70.59%", delta="85.01%")
+    st.plotly_chart(create_gauge("CLABSI Rate", 3.38 if current_q_idx % 3 == 0 else 1.50, 5, "#FF9F1C"), use_container_width=True)
 
-# عرض الجدول كاملاً بشكل منظم
-with st.expander("View Full Benchmark Table (NDNQI)"):
-    # هنا يتم عرض الجدول المستخرج من الـ PDF
-    st.info("Historical data from 4Q 2023 to 3Q 2025")
-    # st.dataframe(df_benchmarks, use_container_width=True)
+st.markdown("<br>", unsafe_allow_html=True)
 
-st.markdown("---")
+# --- الجزء الثاني: بار تشارت (Bar Chart) مستوحى من الصور ---
+st.subheader(f"📊 Medical Device Utilization: {weeks[current_w_idx]}")
 
-# --- الجزء الثاني: بيانات الصور (التعداد اليومي للأجهزة) ---
-st.header("📅 Daily Medical Device Census - April 2026")
-
-# تفريغ بيانات من الصور المرفقة (مثال لأول 5 أيام)
-daily_data = {
-    'Day': [1, 2, 3, 4, 5],
-    'Patient Stay': [34, 31, 24, 25, 24],
-    'Foley Catheter': [14, 16, 15, 15, 15],
-    'Ventilators': [14, 13, 11, 12, 13],
-    'IV Sites': [25, 29, 24, 24, 14]
+# بيانات ديناميكية تتغير مع تغير الأسبوع
+device_counts = {
+    'Ventilator': [14, 12, 11, 13][current_w_idx],
+    'Foley Cath': [15, 16, 14, 15][current_w_idx],
+    'Central Line': [8, 10, 9, 11][current_w_idx],
+    'IV Site': [25, 24, 28, 26][current_w_idx]
 }
-df_daily = pd.DataFrame(daily_data)
+df_devices = pd.DataFrame(list(device_counts.items()), columns=['Device', 'Count'])
 
-# عرض البيانات اليومية في رسم بياني تفاعلي
-fig = px.line(df_daily, x='Day', y=['Patient Stay', 'Ventilators', 'Foley Catheter'],
-              title="Daily Device Utilization Trends",
-              markers=True,
-              color_discrete_sequence=["#1f77b4", "#ff7f0e", "#2ca02c"])
+fig_bar = px.bar(df_devices, x='Device', y='Count', color='Device',
+                 text='Count', color_discrete_sequence=px.colors.qualitative.G10)
 
-st.plotly_chart(fig, use_container_width=True)
-
-# عرض الجدول اليومي أسفل الرسم البياني
-col_table, col_pie = st.columns([2, 1])
-
-with col_table:
-    st.subheader("Daily Census Detail")
-    st.dataframe(df_daily.style.highlight_max(axis=0), use_container_width=True)
-
-with col_pie:
-    st.subheader("Device Ratio (Avg)")
-    avg_data = df_daily[['Foley Catheter', 'Ventilators']].mean()
-    fig_pie = px.pie(values=avg_data.values, names=avg_data.index, hole=0.4)
-    st.plotly_chart(fig_pie, use_container_width=True)
-
-# تذييل الصفحة
-st.markdown("---")
-st.caption("Developed for ICU Monitoring System | Data accurate as of April 2026")
+fig_bar.update_layout(
+    plot_bgcolor='rgba(0,0,0,0)',
+    paper_bgcolor='rgba(0,0,0,0)',
+    font={'color': 'white'},
+    xaxis={'title': ''},
+    yaxis={'showgrid': False},
+    showlegend=False,
+    height=400,
+    bargap=0.
