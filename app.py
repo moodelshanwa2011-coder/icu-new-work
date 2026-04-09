@@ -5,7 +5,7 @@ import time
 # 1. إعدادات الصفحة
 st.set_page_config(page_title="ICU Dashboard", layout="wide", initial_sidebar_state="collapsed")
 
-# 2. CSS (الجزء العلوي ثابت - التغيير في الجزء السفلي فقط)
+# 2. CSS المعتمد (ثبات كامل للهيكل)
 st.markdown("""
     <style>
     [data-testid="stAppViewContainer"] { background-color: #000000; color: #ffffff; }
@@ -51,25 +51,20 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 3. الداتا المستخرجة من الصور (داتا يوم 7، 14، 21، 28 من مارس، ويوم 7 من أبريل)
+# 3. إدارة البيانات والسيكل (البيانات مستخرجة من صورك)
 if 'week_index' not in st.session_state: st.session_state.week_index = 0
 
 all_weeks = [
-    # مارس - يوم 7: Census=23, Foley=16, CVC=4, Vent=12, IV=20
-    {"label": "First Week of March", "census": 23, "dev": [12, 16, 4, 3.5], "bar": [0.0, 0.0, 6.67, 1.5, 0.0, 1.2]},
-    # مارس - يوم 14: Census=24, Foley=16, CVC=3, Vent=10, IV=22
-    {"label": "Second Week of March", "census": 24, "dev": [10, 16, 3, 3.8], "bar": [0.1, 0.0, 7.20, 1.2, 0.2, 1.0]},
-    # مارس - يوم 21: Census=28, Foley=13, CVC=8, Vent=10, IV=18
-    {"label": "Third Week of March", "census": 28, "dev": [10, 13, 8, 4.0], "bar": [0.0, 0.0, 5.50, 0.8, 0.0, 1.5]},
-    # مارس - يوم 28: Census=25, Foley=16, CVC=7, Vent=13, IV=19
-    {"label": "Fourth Week of March", "census": 25, "dev": [13, 16, 7, 4.2], "bar": [0.2, 0.1, 8.10, 2.0, 0.5, 2.1]},
-    # أبريل - يوم 7: Census=30, Foley=15, CVC=6, Vent=11, IV=30
-    {"label": "First Week of April", "census": 30, "dev": [11, 15, 6, 4.5], "bar": [0.0, 0.0, 6.80, 1.4, 0.1, 1.3]}
+    {"label": "First Week of March", "census": 23, "dev": [12, 16, 4, 3.5], "bar_actual": [0.0, 0.0, 6.67, 1.5, 0.0, 1.2]},
+    {"label": "Second Week of March", "census": 24, "dev": [10, 16, 3, 3.8], "bar_actual": [0.1, 0.0, 7.20, 1.2, 0.2, 1.0]},
+    {"label": "Third Week of March", "census": 28, "dev": [10, 13, 8, 4.0], "bar_actual": [0.0, 0.0, 5.50, 0.8, 0.0, 1.5]},
+    {"label": "Fourth Week of March", "census": 25, "dev": [13, 16, 7, 4.2], "bar_actual": [0.2, 0.1, 8.10, 2.0, 0.5, 2.1]},
+    {"label": "First Week of April", "census": 30, "dev": [11, 15, 6, 4.5], "bar_actual": [0.0, 0.0, 6.80, 1.4, 0.1, 1.3]}
 ]
 
 cur = all_weeks[st.session_state.week_index % len(all_weeks)]
 
-# الأرقام الثابتة للجزء العلوي (ممنوع التغيير)
+# الثوابت (الجزء العلوي)
 sq_fix = [("Falls", 0.0, 0.18), ("Injuries", 0.0, 0.04), ("HAPI %", 6.67, 4.58), ("CLABSI", 1.5, 3.3), ("CAUTI", 0.0, 0.4), ("VAP", 1.2, 2.1)]
 cir_fix = [("Restraints", 0.45, 0.9), ("VAE Rate", 1.6, 3.4), ("Turnover", 2.5, 3.0), ("Nurse Hr", 14.5, 12.0), ("RN Edu", 85.0, 70.5), ("C-Diff", 0.0, 0.1)]
 
@@ -83,11 +78,11 @@ def create_gauge(v, mx, s):
     fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=10, b=0, l=10, r=10), height=130)
     return fig
 
-# --- العرض الرئيسي ---
+# --- العرض ---
 st.markdown(f"<h1 style='text-align: center; color: #00d4ff; font-size: 50px; font-weight:900; letter-spacing: 3px;'>ICU DASHBOARD</h1>", unsafe_allow_html=True)
 st.markdown(f"<p style='text-align: center; color: #444; font-weight: bold; font-size: 20px; margin-bottom: 30px;'>PERIOD: 1Q 2026</p>", unsafe_allow_html=True)
 
-# 4. المربعات والدوائر (ثابتة)
+# 4. الجزء العلوي (مربعات ودواير) - ثابت تماماً
 cols1 = st.columns(6)
 for i, (name, val, bm) in enumerate(sq_fix):
     color = "#00ffaa" if val <= bm else "#ff4b4b"
@@ -104,28 +99,61 @@ for i, (name, val, bm) in enumerate(cir_fix):
 
 st.markdown("<hr style='border-color:#111; margin:60px 0;'>", unsafe_allow_html=True)
 
-# 5. الجزء السفلي (داتا الأجهزة والبار المتغيرة)
+# 5. الجزء السفلي (التركيز على Performance Analytics بار تشارت)
 c1, c2 = st.columns([2.2, 1.8])
+
 with c1:
     st.markdown(f"""<div class="census-box-mini"><div style="color:#FFD700; font-size:12px; font-weight:bold;">CURRENT CENSUS</div><div class="census-num-mini">{cur['census']}</div><div style="color:#FFD700; font-size:13px; font-weight:bold;">Occupancy: {round((cur['census']/36)*100,1)}%</div></div>""", unsafe_allow_html=True)
     st.markdown(f'<div class="side-header">ATTACHED DEVICES <span class="week-text">({cur["label"]})</span></div>', unsafe_allow_html=True)
-    
     g_cols = st.columns(4)
-    dev_names = [("Pt with ETT", 36, [10, 18]), ("Pt with Foley", 36, [24, 30]), ("Pt with CVC", 36, [16, 22]), ("Avg Stay", 10, [4, 6])]
-    for i, (n, m, s) in enumerate(dev_names):
+    dev_info = [("Pt with ETT", 36, [10, 18]), ("Pt with Foley", 36, [24, 30]), ("Pt with CVC", 36, [16, 22]), ("Avg Stay", 10, [4, 6])]
+    for i, (n, m, s) in enumerate(dev_info):
         with g_cols[i]:
             st.plotly_chart(create_gauge(cur['dev'][i], m, s), use_container_width=True, config={'displayModeBar': False})
             st.markdown(f'<div class="gauge-label-bottom">{n}</div>', unsafe_allow_html=True)
 
 with c2:
+    # --- ركز هنا: البار تشارت المطور ---
     st.markdown('<div class="side-header" style="margin-left:20px;">PERFORMANCE ANALYTICS</div>', unsafe_allow_html=True)
+    
     fig = go.Figure()
-    fig.add_trace(go.Bar(x=[n[0] for n in sq_fix], y=cur['bar'], name="Actual", marker_color='#00d4ff'))
-    fig.add_trace(go.Bar(x=[n[0] for n in sq_fix], y=[n[2] for n in sq_fix], name="Benchmark", marker_color='#1a1a1a'))
-    fig.update_layout(height=450, barmode='group', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=20, b=0, l=0, r=0), legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center"))
+    
+    # الأعمدة الفعلية (Actual) بلون السين الرائع
+    fig.add_trace(go.Bar(
+        x=[n[0] for n in sq_fix], 
+        y=cur['bar_actual'], 
+        name="Actual Performance", 
+        marker_color='#00d4ff',
+        text=cur['bar_actual'],
+        textposition='outside',
+        textfont=dict(color='#ffffff', size=12)
+    ))
+    
+    # أعمدة الـ Benchmark بلون رمادي داكن للمقارنة
+    fig.add_trace(go.Bar(
+        x=[n[0] for n in sq_fix], 
+        y=[n[2] for n in sq_fix], 
+        name="Unit Benchmark", 
+        marker_color='#1a1a1a',
+        marker_line=dict(color='#444', width=1)
+    ))
+    
+    fig.update_layout(
+        height=450,
+        barmode='group',
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        margin=dict(t=20, b=20, l=0, r=0),
+        legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center", font=dict(color="#aaaaaa")),
+        xaxis=dict(tickfont=dict(color='#888', size=12), showgrid=False),
+        yaxis=dict(tickfont=dict(color='#888'), showgrid=True, gridcolor='#111', zeroline=False),
+        bargap=0.2,
+        bargroupgap=0.1
+    )
+    
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
-# التحديث كل 15 ثانية
+# حلقة التحديث (15 ثانية)
 time.sleep(15)
 st.session_state.week_index += 1
 st.rerun()
