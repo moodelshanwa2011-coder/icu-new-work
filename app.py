@@ -5,7 +5,7 @@ import time
 # 1. إعدادات الصفحة
 st.set_page_config(page_title="ICU Dashboard", layout="wide", initial_sidebar_state="collapsed")
 
-# 2. CSS المعتمد
+# 2. CSS المعتمد والمستقر
 st.markdown("""
     <style>
     [data-testid="stAppViewContainer"] { background-color: #000000; color: #ffffff; }
@@ -46,11 +46,10 @@ st.markdown("""
     .census-num-mini { color: #FFD700; font-size: 40px; font-weight: 900; margin: 5px 0; }
     .gauge-label-bottom { color: #ffffff; font-size: 14px; font-weight: 900; text-transform: uppercase; margin-top: -20px; text-align: center; }
     .side-header { color: #00d4ff; font-size: 26px; font-weight: 900; margin-bottom: 15px; text-transform: uppercase; }
-    .week-text { color: #FFD700; font-size: 18px; font-weight: bold; margin-left: 10px; }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. الداتا المتغيرة بالكامل
+# 3. الداتا (مربوطة بالكامل)
 if 'week_index' not in st.session_state: st.session_state.week_index = 0
 
 all_weeks = [
@@ -62,8 +61,8 @@ all_weeks = [
 ]
 
 cur = all_weeks[st.session_state.week_index % len(all_weeks)]
-sq_names = [("Falls", 0.18), ("Injuries", 0.04), ("HAPI %", 4.58), ("CLABSI", 3.3), ("CAUTI", 0.4), ("VAP", 2.1)]
-cir_names = [("Restraints", 0.9), ("VAE Rate", 3.4), ("Turnover", 3.0), ("Nurse Hr", 12.0), ("RN Edu", 70.5), ("C-Diff", 0.1)]
+sq_info = [("Falls", 0.18), ("Injuries", 0.04), ("HAPI %", 4.58), ("CLABSI", 3.3), ("CAUTI", 0.4), ("VAP", 2.1)]
+cir_info = [("Restraints", 0.9), ("VAE Rate", 3.4), ("Turnover", 3.0), ("Nurse Hr", 12.0), ("RN Edu", 70.5), ("C-Diff", 0.1)]
 
 def create_gauge(v, mx, s):
     fig = go.Figure(go.Indicator(
@@ -75,63 +74,64 @@ def create_gauge(v, mx, s):
     fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=10, b=0, l=10, r=10), height=130)
     return fig
 
-# --- العرض ---
-st.markdown(f"<h1 style='text-align: center; color: #00d4ff; font-size: 50px; font-weight:900; letter-spacing: 3px;'>ICU DASHBOARD</h1>", unsafe_allow_html=True)
+# --- الـ Header ---
+st.markdown(f"<h1 style='text-align: center; color: #00d4ff; font-size: 50px; font-weight:900;'>ICU DASHBOARD</h1>", unsafe_allow_html=True)
 st.markdown(f"<p style='text-align: center; color: #444; font-weight: bold; font-size: 20px; margin-bottom: 30px;'>PERIOD: 1Q 2026</p>", unsafe_allow_html=True)
 
-# 4. المربعات (متغيرة مع الأسبوع)
+# 4. المربعات والدوائر
 cols1 = st.columns(6)
-for i, (name, bm) in enumerate(sq_names):
-    val = cur['sq_vals'][i]
-    color = "#00ffaa" if val <= bm else "#ff4b4b"
+for i, (name, bm) in enumerate(sq_info):
+    v = cur['sq_vals'][i]
+    color = "#00ffaa" if v <= bm else "#ff4b4b"
     with cols1[i]:
-        st.markdown(f"""<div class="kpi-card"><div class="z-layer"><div class="gray-label">{name}</div><div class="cyan-val" style="color:{color}">{val}</div><div class="bm-full-text">BM: {bm}</div></div></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="kpi-card"><div class="z-layer"><div class="gray-label">{name}</div><div class="cyan-val" style="color:{color}">{v}</div><div class="bm-full-text">BM: {bm}</div></div></div>""", unsafe_allow_html=True)
 
-# 5. الدوائر (متغيرة مع الأسبوع)
 st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
 cols2 = st.columns(6)
-for i, (name, bm) in enumerate(cir_names):
-    val = cur['cir_vals'][i]
+for i, (name, bm) in enumerate(cir_info):
+    v = cur['cir_vals'][i]
     is_rev = any(x in name for x in ["Hr", "Edu"])
-    color = "#00ffaa" if (val >= bm if is_rev else val <= bm) else "#ff4b4b"
+    color = "#00ffaa" if (v >= bm if is_rev else v <= bm) else "#ff4b4b"
     with cols2[i]:
-        st.markdown(f"""<div style="text-align:center;"><div class="circle-container"><div class="z-layer"><div class="cyan-val" style="font-size: 45px; color:{color}">{val}</div></div></div><div class="gray-label" style="margin-top:20px; font-size:24px;">{name}</div><div class="bm-full-text">BM: {bm}</div></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div style="text-align:center;"><div class="circle-container"><div class="z-layer"><div class="cyan-val" style="font-size: 45px; color:{color}">{v}</div></div></div><div class="gray-label" style="margin-top:20px; font-size:24px;">{name}</div><div class="bm-full-text">BM: {bm}</div></div>""", unsafe_allow_html=True)
 
 st.markdown("<hr style='border-color:#111; margin:60px 0;'>", unsafe_allow_html=True)
 
-# 6. السفلي (الأجهزة + السلم الموسيقي)
+# 5. السفلي (الأجهزة + السلم الموسيقي المعدل)
 c1, c2 = st.columns([2.2, 1.8])
 with c1:
-    st.markdown(f"""<div class="census-box-mini"><div style="color:#FFD700; font-size:12px; font-weight:bold;">CURRENT CENSUS</div><div class="census-num-mini">{cur['census']}</div><div style="color:#FFD700; font-size:13px; font-weight:bold;">Occupancy: {round((cur['census']/36)*100,1)}%</div></div>""", unsafe_allow_html=True)
-    st.markdown(f'<div class="side-header">ATTACHED DEVICES <span class="week-text">({cur["label"]})</span></div>', unsafe_allow_html=True)
+    st.markdown(f"""<div class="census-box-mini"><div style="color:#FFD700; font-size:12px; font-weight:bold;">CURRENT CENSUS</div><div class="census-num-mini">{cur['census']}</div></div>""", unsafe_allow_html=True)
+    st.markdown(f'<div class="side-header">DEVICES <span style="color:#FFD700; font-size:18px;">({cur["label"]})</span></div>', unsafe_allow_html=True)
     g_cols = st.columns(4)
-    dev_info = [("Pt with ETT", 36, [10, 18]), ("Pt with Foley", 36, [24, 30]), ("Pt with CVC", 36, [16, 22]), ("Avg Stay", 10, [4, 6])]
-    for i, (n, m, s) in enumerate(dev_info):
+    dev_meta = [("ETT", 36, [10, 18]), ("Foley", 36, [24, 30]), ("CVC", 36, [16, 22]), ("Stay", 10, [4, 6])]
+    for i, (n, m, s) in enumerate(dev_meta):
         with g_cols[i]:
             st.plotly_chart(create_gauge(cur['dev'][i], m, s), use_container_width=True, config={'displayModeBar': False})
             st.markdown(f'<div class="gauge-label-bottom">{n}</div>', unsafe_allow_html=True)
 
 with c2:
     st.markdown('<div class="side-header" style="margin-left:20px;">Staff Chart</div>', unsafe_allow_html=True)
+    x_names = [n[0] for n in sq_info]
     y_vals = cur['sq_vals']
-    y_bms = [n[1] for n in sq_names]
-    colors = ['#00d4ff' if y <= b else '#ff4b4b' for y, b in zip(y_vals, y_bms)]
-    max_y = max(max(y_vals), max(y_bms)) * 1.3
+    y_bms = [n[1] for n in sq_info]
+    
+    # حماية من الـ Divide by Zero أو القيم الفارغة
+    max_y = max(max(y_vals), max(y_bms), 1.0) * 1.3
     
     fig = go.Figure()
-    for i in range(1, 6): fig.add_shape(type="line", x0=-0.5, x1=5.5, y0=(max_y/6)*i, y1=(max_y/6)*i, line=dict(color="#222", width=1))
-    fig.add_annotation(x=-0.4, y=(max_y/6)*3, text="𝄞", showarrow=False, font=dict(size=60, color="#111"))
+    # خطوط السلم
+    for i in range(1, 6):
+        fig.add_shape(type="line", x0=-0.5, x1=5.5, y0=(max_y/6)*i, y1=(max_y/6)*i, line=dict(color="#1a1a1a", width=1))
     
-    # الأعمدة الرفيعة
-    fig.add_trace(go.Bar(x=[n[0] for n in sq_names], y=y_vals, marker_color='#00d4ff', width=0.03, showlegend=False))
-    
-    # النوتات الموسيقية (الأرقام)
-    fig.add_trace(go.Scatter(x=[n[0] for n in sq_names], y=y_vals, mode='markers+text', 
-                             marker=dict(size=30, color=colors, symbol='circle', line=dict(color='#000', width=2)),
-                             text=y_vals, textfont=dict(color='#000', size=11, family='Arial Black'), textposition='midcenter', showlegend=False))
+    # الأعمدة والنوتات
+    colors = ['#00d4ff' if y <= b else '#ff4b4b' for y, b in zip(y_vals, y_bms)]
+    fig.add_trace(go.Bar(x=x_names, y=y_vals, marker_color='#00d4ff', width=0.03, showlegend=False))
+    fig.add_trace(go.Scatter(x=x_names, y=y_vals, mode='markers+text', 
+                             marker=dict(size=30, color=colors, line=dict(color='#000', width=2)),
+                             text=y_vals, textfont=dict(color='#000', size=10, family='Arial Black'), textposition='midcenter', showlegend=False))
     
     fig.update_layout(height=450, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=0, b=20, l=0, r=0),
-                      xaxis=dict(tickfont=dict(color='#888', size=11), showgrid=False, range=[-0.6, 5.6]),
+                      xaxis=dict(tickfont=dict(color='#888', size=10), showgrid=False),
                       yaxis=dict(showgrid=False, showticklabels=False, range=[0, max_y]))
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
