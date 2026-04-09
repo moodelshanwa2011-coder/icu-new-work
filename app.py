@@ -5,12 +5,12 @@ import time
 # 1. إعدادات الصفحة
 st.set_page_config(page_title="ICU Dashboard", layout="wide", initial_sidebar_state="collapsed")
 
-# 2. CSS - تثبيت العلوي وتطوير السفلي (عدادات نصف دائرة)
+# 2. CSS - تثبيت العلوي وتنسيق العدادات
 st.markdown("""
     <style>
     [data-testid="stAppViewContainer"] { background-color: #000000; color: #ffffff; }
     
-    /* === الجزء العلوي (مثبت ومحمي كما هو) === */
+    /* === الجزء العلوي (مثبت) === */
     .kpi-card {
         position: relative; background-color: #0a0a0a; border-radius: 20px;
         overflow: hidden; display: flex; flex-direction: column; justify-content: center;
@@ -45,25 +45,18 @@ st.markdown("""
     .cyan-val { color: #00d4ff; font-size: 60px; font-weight: 900; }
     .bm-full-text { color: #555555; font-size: 14px; font-weight: bold; margin-top: 10px; text-transform: uppercase; }
 
-    /* === الجزء السفلي الجديد والمطور === */
-    
-    /* تقليل حجم Current Census جداً */
+    /* === الجزء السفلي المطور === */
     .census-box-mini {
         background: #0a0a0a; border: 2px solid #FFD700; border-radius: 12px; 
-        padding: 15px 25px; text-align: left; position: relative; max-width: 250px;
-        margin-bottom: 20px;
+        padding: 15px 25px; text-align: left; max-width: 250px; margin-bottom: 20px;
     }
     .census-label-mini { color: #FFD700; font-size: 12px; font-weight: bold; text-transform: uppercase; }
     .census-num-mini { color: #FFD700; font-size: 40px; font-weight: 900; line-height: 1; margin: 5px 0; }
     .occ-text-mini { color: #FFD700; font-size: 13px; font-weight: bold; }
 
-    /* حاوية العدادات نصف الدائرية */
-    .gauge-grid {
-        display: flex; justify-content: space-around; gap: 10px; margin-top: 10px;
-    }
-    .gauge-item {
-        text-align: center; background: #080808; padding: 10px; border-radius: 12px;
-        width: 180px; /* حجم ملموم للعداد */
+    .gauge-label-bottom {
+        color: #ffffff; font-size: 14px; font-weight: 900; text-transform: uppercase;
+        margin-top: -20px; text-align: center; letter-spacing: 1px;
     }
 
     .side-header { color: #00d4ff; font-size: 26px; font-weight: 900; margin-bottom: 15px; text-transform: uppercase; }
@@ -82,46 +75,42 @@ data_source = [
      "census": 28, "ett": 10, "foley": 12, "cvc": 8, "stay": 2.9}
 ]
 d = data_source[st.session_state.step % 2]
-
-# حساب النسبة تلقائياً من 36
 occ_percent = round((d['census'] / 36) * 100, 1)
 
-# دالة لإنشاء عداد نصف دائري (Semi-Circle Gauge) ملون
-def create_gauge(label, value, max_val, color_scheme):
+# دالة لإنشاء عداد نظيف (بدون عنوان داخلي)
+def create_clean_gauge(value, max_val, color_scheme):
     fig = go.Figure(go.Indicator(
         mode = "gauge+number",
         value = value,
         domain = {'x': [0, 1], 'y': [0, 1]},
-        title = {'text': label, 'font': {'size': 14, 'color': '#888'}, 'align': 'center'},
-        number = {'font': {'size': 35, 'color': '#fff', 'family': 'Black Arial'}, 'suffix': ''},
+        number = {'font': {'size': 38, 'color': '#fff', 'family': 'Arial Black'}},
         gauge = {
-            'axis': {'range': [None, max_val], 'tickwidth': 1, 'tickcolor': "#333", 'tickmode': 'array', 'tickvals': []},
-            'bar': {'color': "#222"}, # لون المؤشر نفسه داكن
+            'axis': {'range': [None, max_val], 'tickvals': []},
+            'bar': {'color': "#222"},
             'bgcolor': "#000",
             'borderwidth': 0,
             'steps': [
-                {'range': [0, color_scheme[0]], 'color': "#00ffaa"}, # أخضر
-                {'range': [color_scheme[0], color_scheme[1]], 'color': "#FFD700"}, # أصفر
-                {'range': [color_scheme[1], max_val], 'color': "#ff4b4b"} # أحمر
+                {'range': [0, color_scheme[0]], 'color': "#00ffaa"},
+                {'range': [color_scheme[0], color_scheme[1]], 'color': "#FFD700"},
+                {'range': [color_scheme[1], max_val], 'color': "#ff4b4b"}
             ],
         }
     ))
     fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
-                      margin=dict(t=0, b=0, l=10, r=10), height=140)
+                      margin=dict(t=10, b=0, l=10, r=10), height=130)
     return fig
 
 # الهيدر
 st.markdown(f"<h1 style='text-align: center; color: #00d4ff; font-size: 50px; font-weight:900; letter-spacing: 3px;'>ICU DASHBOARD</h1>", unsafe_allow_html=True)
 st.markdown(f"<p style='text-align: center; color: #444; font-weight: bold; font-size: 20px; margin-bottom: 30px;'>PERIOD: {d['period']}</p>", unsafe_allow_html=True)
 
-# 4. المربعات الـ 6 العملاقة (مثبتة)
+# 4. العلوي (مثبت)
 cols1 = st.columns(6)
 for i, (lab, val, bm) in enumerate(d['squares']):
     color = "#00ffaa" if val <= bm else "#ff4b4b"
     with cols1[i]:
         st.markdown(f"""<div class="kpi-card"><div class="z-layer"><div class="gray-label">{lab}</div><div class="cyan-val" style="color:{color}">{val}</div><div class="bm-full-text">BENCHMARK: {bm}</div></div></div>""", unsafe_allow_html=True)
 
-# 5. الدوائر الـ 6 العملاقة (مثبتة)
 st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
 cols2 = st.columns(6)
 for i, (lab, val, bm) in enumerate(d['circles']):
@@ -132,34 +121,22 @@ for i, (lab, val, bm) in enumerate(d['circles']):
 
 st.markdown("<hr style='border-color:#111; margin:60px 0;'>", unsafe_allow_html=True)
 
-# 6. الجزء السفلي المطور (Current Census مصغر + عدادات الأجهزة)
-c1, c2 = st.columns([1.8, 2.2])
+# 5. السفلي المطور (Census + Attached Devices)
+c1, c2 = st.columns([2.0, 2.0])
 
 with c1:
-    # 6.1 تقليل حجم الكرنت سينسس جداً
-    st.markdown(f"""
-    <div class="census-box-mini">
-        <div class="census-label-mini">Current Census</div>
-        <div class="census-num-mini">{d['census']}</div>
-        <div class="occ-text-mini">Occupancy: {occ_percent}% (of 36)</div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"""<div class="census-box-mini"><div class="census-label-mini">Current Census</div><div class="census-num-mini">{d['census']}</div><div class="occ-text-mini">Occupancy: {occ_percent}% (of 36)</div></div>""", unsafe_allow_html=True)
     
-    # 6.2 إنشاء عدادات الأجهزة بتصميم نصف دائري ملون
-    st.markdown('<div class="side-header">Device Utilization</div>', unsafe_allow_html=True)
+    st.markdown('<div class="side-header">ATTACHED DEVICES</div>', unsafe_allow_html=True)
     
-    col_g1, col_g2, col_g3, col_g4 = st.columns(4)
+    g_cols = st.columns(4)
+    dev_info = [("Pt with ETT", d['ett'], 36, [10, 20]), ("Pt with Foley", d['foley'], 36, [15, 25]), 
+                ("Pt with CVC", d['cvc'], 36, [8, 15]), ("Avg Stay", d['stay'], 10, [3, 6])]
     
-    # حدود الألوان الديناميكية لكل جهاز [حد الأخضر، حد الأصفر]
-    with col_g1:
-        st.plotly_chart(create_gauge("Pt with ETT", d['ett'], 36, [10, 20]), use_container_width=True, config={'displayModeBar': False})
-    with col_g2:
-        st.plotly_chart(create_gauge("Pt with Foley", d['foley'], 36, [15, 25]), use_container_width=True, config={'displayModeBar': False})
-    with col_g3:
-        st.plotly_chart(create_gauge("Pt with CVC", d['cvc'], 36, [8, 15]), use_container_width=True, config={'displayModeBar': False})
-    with col_g4:
-        #Avg Stay له حدود ألوان مختلفة
-        st.plotly_chart(create_gauge("Avg Stay", d['stay'], 10, [3, 6]), use_container_width=True, config={'displayModeBar': False})
+    for i, (name, val, mx, clrs) in enumerate(dev_info):
+        with g_cols[i]:
+            st.plotly_chart(create_clean_gauge(val, mx, clrs), use_container_width=True, config={'displayModeBar': False})
+            st.markdown(f'<div class="gauge-label-bottom">{name}</div>', unsafe_allow_html=True)
 
 with c2:
     st.markdown('<div class="side-header" style="margin-left:20px;">PERFORMANCE ANALYTICS</div>', unsafe_allow_html=True)
@@ -167,7 +144,7 @@ with c2:
     fig = go.Figure()
     fig.add_trace(go.Bar(x=labels, y=vals, name="Actual", marker_color='#00d4ff', text=vals, textposition='outside'))
     fig.add_trace(go.Bar(x=labels, y=bms, name="Benchmark", marker_color='#1a1a1a', text=bms, textposition='outside'))
-    fig.update_layout(height=480, barmode='group', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=20, b=0, l=0, r=0), bargap=0.25, legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center", font=dict(color="#888")), xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#111'))
+    fig.update_layout(height=450, barmode='group', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=20, b=0, l=0, r=0), bargap=0.25, legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center", font=dict(color="#888")), xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#111'))
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
 time.sleep(15)
